@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1778758909455,
+      "tag": "0000_sturdy_the_executioner",
+      "breakpoints": true
+    }
+  ]
+}
