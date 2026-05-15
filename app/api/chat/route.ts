@@ -1,27 +1,102 @@
-import { google, GoogleLanguageModelOptions } from "@ai-sdk/google";
-import { streamText, UIMessage, convertToModelMessages, tool, stepCountIs } from "ai";
+import { google } from "@ai-sdk/google";
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from "ai";
 import z from "zod";
 import { db } from "@/db/db";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
 
 export const maxDuration = 120; // 2 minutes
+
+let schemaCache: string | null = null;
+
+async function getLatestMigrationPath() {
+  const migrationsDir = path.join(process.cwd(), "db/migrations");
+  const files = await readdir(migrationsDir);
+
+  const migrationFiles = files
+    .filter((file) => file.endsWith(".sql"))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  if (migrationFiles.length === 0) {
+    throw new Error("No migration .sql files found in db/migrations");
+  }
+
+  const latestMigrationFile = migrationFiles[migrationFiles.length - 1];
+  return path.join(migrationsDir, latestMigrationFile);
+}
+
+async function getSchemaSql() {
+  if (schemaCache) return schemaCache;
+
+  const migrationPath = await getLatestMigrationPath();
+  const rawSchema = await readFile(migrationPath, "utf8");
+
+  // Optional cleanup for readability in tool output
+  schemaCache = rawSchema
+    .split("--> statement-breakpoint")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(";\n\n")
+    .concat(";");
+
+  return schemaCache;
+}
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const SYSTEM_PROMPT = `You are an expert SQL assistant that helps users to query their database using natural language.
+  const SYSTEM_PROMPT = `
+  You are an expert SQLite AI data analyst.
 
-    ${new Date().toLocaleString("sv-SE")}
-    You have access to following tools:
-    1. db tool - call this tool to query the database.
-    2. schema tool - call this tool to get the database schema which will help you to write sql query.
+  You help non-technical employees query company databases using natural language.
 
-    Rules:
-    - Generate ONLY SELECT queries (no INSERT, UPDATE, DELETE, DROP)
-    - Always use the schema provided by the schema tool
-    - Pass in valid SQL syntax in db tool.
-    - IMPORTANT: To query database call db tool, Don't return just SQL query.
+  You answer employee business questions by:
+  1. Understanding the question
+  2. Generating valid SQLite queries
+  3. Executing the query
+  4. Explaining the result
 
-    Always respond in a helpful, conversational tone while being technically accurate.`;
+  You have access to:
+  1. A schema tool
+  2. A database query tool
+
+  IMPORTANT RULES:
+
+  - ALWAYS check the schema before generating SQL
+  - ONLY use tables and columns that exist
+  - NEVER invent column names
+  - ONLY generate SELECT queries
+  - NEVER generate DELETE, UPDATE, INSERT, DROP, ALTER, or TRUNCATE queries
+  - Use SQLite syntax
+  - Use joins when necessary
+  - Return concise business-friendly answers
+
+  If querying revenue:
+  - Use orders.total_amount
+  - Use orders.order_status
+
+  If the query fails:
+  - Explain the issue clearly
+  - Try correcting the SQL query
+
+  Before generating SQL:
+  1. Inspect schema
+  2. Identify relevant tables
+  3. Generate valid SQLite SQL
+  4. Execute query
+  5. Explain results in plain English
+
+  OUTPUT FORMAT:
+  1. Show generated SQL
+  2. Execute query
+  3. Return concise natural language answer
+  `;
 
   const result = streamText({
     model: google("gemini-2.5-flash-lite"),
@@ -33,7 +108,7 @@ export async function POST(req: Request) {
         description: "Call this tool to get database schema information.",
         inputSchema: z.object({}),
         execute: async () => {
-          return ``;
+          return await getSchemaSql();
         },
       }),
       db: tool({
@@ -43,8 +118,24 @@ export async function POST(req: Request) {
         }),
         execute: async ({ query }) => {
           console.log("Query", query);
-          // Important: make sure you sanitize / validate (somehow) check the query
-          // string search [delete, update] -> Guardrails
+
+          const forbidden = [
+            "DELETE",
+            "UPDATE",
+            "INSERT",
+            "DROP",
+            "ALTER",
+            "TRUNCATE",
+          ];
+
+          const upper = query.toUpperCase();
+
+          for (const word of forbidden) {
+            if (upper.includes(word)) {
+              throw new Error("Forbidden SQL operation");
+            }
+          }
+
           return await db.run(query);
         },
       }),
