@@ -76,6 +76,8 @@ export async function POST(req: Request) {
   - Use SQLite syntax
   - Use joins when necessary
   - Return concise business-friendly answers
+  - All database status values are lowercase
+  - Example values: completed, pending, active, inactive, refunded
 
   If querying revenue:
   - Use orders.total_amount
@@ -96,10 +98,14 @@ export async function POST(req: Request) {
   1. Show generated SQL
   2. Execute query
   3. Return concise natural language answer
+
+  When returning analytics:
+  - prefer human-readable names over IDs
+  - use joins to retrieve names when possible
   `;
 
   const result = streamText({
-    model: google("gemini-2.5-flash-lite"),
+    model: google("gemini-2.5-flash"),
     messages: await convertToModelMessages(messages),
     system: SYSTEM_PROMPT,
     stopWhen: stepCountIs(10),
