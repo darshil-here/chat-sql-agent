@@ -1,7 +1,7 @@
 "use client"
 
 import { memo } from "react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { User, Bot, SquareActivity } from "lucide-react"
 import { cn } from "@/components/ui/utils"
 
 interface MessageBubbleProps {
@@ -12,11 +12,15 @@ interface MessageBubbleProps {
 export const MessageBubble = memo(({ role, children }: MessageBubbleProps) => {
   return (
     <div className="flex items-start gap-3 max-w-full">
-      <Avatar className="w-8 h-8 flex-shrink-0">
-        <AvatarFallback>
-          {role === "user" ? "U" : role === "system" ? "S" : "AI"}
-        </AvatarFallback>
-      </Avatar>
+      <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-elevated">
+        {role === "user" ? (
+          <User className="size-4 text-text-secondary" />
+        ) : role === "assistant" ? (
+          <Bot className="size-4 text-text-secondary" />
+        ) : (
+          <SquareActivity className="size-4 text-text-secondary" />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         <div
           className={cn(
