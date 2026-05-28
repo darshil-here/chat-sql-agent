@@ -30,15 +30,15 @@ export function ChatContainer({ messages }: ChatContainerProps) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className="size-12 mx-auto mb-4 rounded-full bg-panel flex items-center justify-center">
-            <span className="text-2xl">💬</span>
+      <div className="flex-1 flex items-center justify-center p-12">
+        <div className="text-center max-w-lg">
+          <div className="size-16 mx-auto mb-4 rounded-full bg-panel flex items-center justify-center">
+            <span className="text-3xl">💬</span>
           </div>
-          <h2 className="text-lg font-medium text-text-primary mb-2">
+          <h2 className="text-xl font-medium text-text-primary mb-2">
             Start a conversation
           </h2>
-          <p className="text-sm text-text-muted">
+          <p className="text-base text-text-muted">
             Ask questions about your database. Try &ldquo;Show me all active
             customers&rdquo; or &ldquo;What&apos;s the total revenue from
             completed orders?&rdquo;
