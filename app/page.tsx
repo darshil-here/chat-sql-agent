@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useChat } from "@ai-sdk/react"
-import { useState } from "react"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { useChat } from "@ai-sdk/react";
+import { useState } from "react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-import { TopBar } from "@/components/chat/top-bar"
-import { StatusStrip } from "@/components/chat/status-strip"
-import { ChatContainer } from "@/components/chat/chat-container"
-import { Composer } from "@/components/chat/composer"
-import { MessageBubble } from "@/components/chat/message-bubble"
-import { ToolStatusCard } from "@/components/chat/tool-status-card"
+import { TopBar } from "@/components/chat/top-bar";
+import { StatusStrip } from "@/components/chat/status-strip";
+import { ChatContainer } from "@/components/chat/chat-container";
+import { Composer } from "@/components/chat/composer";
+import { MessageBubble } from "@/components/chat/message-bubble";
+import { ToolStatusCard } from "@/components/chat/tool-status-card";
 
 type AIInput = {
-  query: string
-}
+  query: string;
+};
 
 type AIOutput = {
-  rows: string[]
-}
+  rows: string[];
+};
 
 const SQL_KEYWORDS = [
   "SELECT",
@@ -60,41 +60,41 @@ const SQL_KEYWORDS = [
   "AVG",
   "MIN",
   "MAX",
-]
+];
 
 function getStepStatusLabel(parts: Array<{ type: string }>, stepIndex: number) {
   for (let j = stepIndex + 1; j < parts.length; j++) {
-    const nextType = parts[j]?.type
+    const nextType = parts[j]?.type;
 
     if (nextType === "step-start") {
-      break
+      break;
     }
 
     if (nextType === "tool-schema") {
-      return "Loading schema..."
+      return "Loading schema...";
     }
 
     if (nextType === "tool-db") {
-      return "Generating SQL query..."
+      return "Generating SQL query...";
     }
 
     if (nextType === "text") {
-      return "Querying database..."
+      return "Querying database...";
     }
   }
 
-  return "Generating SQL..."
+  return "Generating SQL...";
 }
 
 function formatSqlQuery(rawQuery: string) {
-  let sql = rawQuery.trim().replace(/\s+/g, " ")
+  let sql = rawQuery.trim().replace(/\s+/g, " ");
 
   for (const keyword of [...SQL_KEYWORDS].sort((a, b) => b.length - a.length)) {
     const pattern = new RegExp(
       `\\b${keyword.replace(/ /g, "\\\\s+")}\\b`,
-      "gi"
-    )
-    sql = sql.replace(pattern, keyword)
+      "gi",
+    );
+    sql = sql.replace(pattern, keyword);
   }
 
   const clauses = [
@@ -114,38 +114,38 @@ function formatSqlQuery(rawQuery: string) {
     "ON",
     "UNION ALL",
     "UNION",
-  ]
+  ];
 
   for (const clause of clauses) {
-    const pattern = new RegExp(`\\s+${clause.replace(/ /g, "\\\\s+")}\\b`, "g")
-    sql = sql.replace(pattern, `\n${clause}`)
+    const pattern = new RegExp(`\\s+${clause.replace(/ /g, "\\\\s+")}\\b`, "g");
+    sql = sql.replace(pattern, `\n${clause}`);
   }
 
   if (sql.startsWith("SELECT ")) {
-    sql = sql.replace(/^SELECT\s+/g, "SELECT\n  ")
-    sql = sql.replace(/,\s*/g, ",\n  ")
+    sql = sql.replace(/^SELECT\s+/g, "SELECT\n  ");
+    sql = sql.replace(/,\s*/g, ",\n  ");
   }
 
-  return sql.replace(/\n{3,}/g, "\n\n").trim()
+  return sql.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export default function Chat() {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
-  const { messages, sendMessage, status } = useChat()
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { messages, sendMessage, status } = useChat();
 
-  const isLoading = status === "streaming" || status === "submitted"
+  const isLoading = status === "streaming" || status === "submitted";
 
   const copySql = async (key: string, sql: string) => {
-    await navigator.clipboard.writeText(sql)
-    setCopiedKey(key)
+    await navigator.clipboard.writeText(sql);
+    setCopiedKey(key);
     setTimeout(() => {
-      setCopiedKey((current) => (current === key ? null : current))
-    }, 1500)
-  }
+      setCopiedKey((current) => (current === key ? null : current));
+    }, 1500);
+  };
 
   const handleSubmit = (text: string) => {
-    sendMessage({ text })
-  }
+    sendMessage({ text });
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -164,10 +164,13 @@ export default function Chat() {
                     switch (part.type) {
                       case "text":
                         return (
-                          <div key={`${message.id}-${i}`} className="whitespace-pre-wrap">
+                          <div
+                            key={`${message.id}-${i}`}
+                            className="whitespace-pre-wrap"
+                          >
                             {part.text}
                           </div>
-                        )
+                        );
 
                       case "tool-db":
                         return (
@@ -177,9 +180,10 @@ export default function Chat() {
                               status={
                                 part.state === "output-available"
                                   ? "success"
-                                  : part.state === "output-error" || part.state === "output-denied"
-                                  ? "error"
-                                  : "running"
+                                  : part.state === "output-error" ||
+                                      part.state === "output-denied"
+                                    ? "error"
+                                    : "running"
                               }
                             >
                               {(part.input as unknown as AIInput)?.query && (
@@ -192,9 +196,13 @@ export default function Chat() {
                                       type="button"
                                       onClick={() => {
                                         const formatted = formatSqlQuery(
-                                          (part.input as unknown as AIInput).query
-                                        )
-                                        copySql(`${message.id}-${i}`, formatted)
+                                          (part.input as unknown as AIInput)
+                                            .query,
+                                        );
+                                        copySql(
+                                          `${message.id}-${i}`,
+                                          formatted,
+                                        );
                                       }}
                                       className="text-[11px] px-2 py-1 rounded bg-elevated hover:bg-elevated/80 text-text-secondary"
                                     >
@@ -222,7 +230,7 @@ export default function Chat() {
                                     }}
                                   >
                                     {formatSqlQuery(
-                                      (part.input as unknown as AIInput).query
+                                      (part.input as unknown as AIInput).query,
                                     )}
                                   </SyntaxHighlighter>
                                 </div>
@@ -238,7 +246,7 @@ export default function Chat() {
                                 )}
                             </ToolStatusCard>
                           </div>
-                        )
+                        );
 
                       case "tool-schema":
                         return (
@@ -248,9 +256,10 @@ export default function Chat() {
                               status={
                                 part.state === "output-available"
                                   ? "success"
-                                  : part.state === "output-error" || part.state === "output-denied"
-                                  ? "error"
-                                  : "running"
+                                  : part.state === "output-error" ||
+                                      part.state === "output-denied"
+                                    ? "error"
+                                    : "running"
                               }
                             >
                               {part.state === "output-available" && (
@@ -260,7 +269,7 @@ export default function Chat() {
                               )}
                             </ToolStatusCard>
                           </div>
-                        )
+                        );
 
                       case "step-start":
                         return (
@@ -270,16 +279,16 @@ export default function Chat() {
                           >
                             {getStepStatusLabel(
                               message.parts as Array<{ type: string }>,
-                              i
+                              i,
                             )}
                           </div>
-                        )
+                        );
 
                       case "reasoning":
-                        return null
+                        return null;
 
                       default:
-                        return null
+                        return null;
                     }
                   })}
                 </MessageBubble>
@@ -295,5 +304,5 @@ export default function Chat() {
         isLoading={isLoading}
       />
     </div>
-  )
+  );
 }

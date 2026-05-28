@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useRef, useEffect, useCallback } from "react"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { ArrowUp } from "lucide-react"
+import { useRef, useEffect, useCallback } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { ArrowUp } from "lucide-react";
 
 interface ComposerProps {
-  onSubmit: (message: string) => void
-  disabled?: boolean
-  isLoading?: boolean
-  isInitializing?: boolean
+  onSubmit: (message: string) => void;
+  disabled?: boolean;
+  isLoading?: boolean;
+  isInitializing?: boolean;
 }
 
 export function Composer({
@@ -18,35 +18,35 @@ export function Composer({
   isLoading = false,
   isInitializing = false,
 }: ComposerProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!textareaRef.current) return
-    textareaRef.current.style.height = "auto"
-    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
-  }, [disabled])
+    if (!textareaRef.current) return;
+    textareaRef.current.style.height = "auto";
+    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+  }, [disabled]);
 
   const handleSubmit = useCallback(() => {
-    const value = textareaRef.current?.value.trim()
-    if (!value || disabled) return
+    const value = textareaRef.current?.value.trim();
+    if (!value || disabled) return;
 
-    onSubmit(value)
+    onSubmit(value);
 
     if (textareaRef.current) {
-      textareaRef.current.value = ""
-      textareaRef.current.style.height = "auto"
+      textareaRef.current.value = "";
+      textareaRef.current.style.height = "auto";
     }
-  }, [onSubmit, disabled])
+  }, [onSubmit, disabled]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        handleSubmit()
+        e.preventDefault();
+        handleSubmit();
       }
     },
-    [handleSubmit]
-  )
+    [handleSubmit],
+  );
 
   return (
     <div className="flex justify-center p-4">
@@ -65,7 +65,7 @@ export function Composer({
             size="icon"
             disabled={disabled || isInitializing}
             onClick={handleSubmit}
-            className="shrink-0 rounded-full"
+            className="shrink-0 rounded-full cursor-pointer"
           >
             {isLoading ? (
               <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -81,5 +81,5 @@ export function Composer({
         </div>
       </div>
     </div>
-  )
+  );
 }
