@@ -19,7 +19,7 @@ export function TopBar() {
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className="size-8"
+          className="size-8 cursor-pointer"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           {theme === "dark" ? (
