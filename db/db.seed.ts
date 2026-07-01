@@ -1,852 +1,593 @@
+import { faker } from "@faker-js/faker";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+
 import { db } from "./db";
 import {
-  campaignsTable,
   companiesTable,
-  customersTable,
   employeesTable,
-  orderItemsTable,
-  ordersTable,
+  customersTable,
   productsTable,
+  ordersTable,
+  orderItemsTable,
   subscriptionsTable,
   supportTicketsTable,
+  campaignsTable,
+  invoicesTable,
+  paymentsTable,
+  refundsTable,
+  warehousesTable,
+  inventoryTable,
+  reviewsTable,
+  shipmentsTable,
+  couponsTable,
+  loyaltyPointsTable,
+  vendorsTable,
+  purchaseOrdersTable,
+  departmentsTable,
+  regionsTable,
+  taxRatesTable,
+  shippingAddressesTable,
 } from "./schema";
 
+faker.seed(42);
+
+const ORDER_STATUSES = ["completed", "pending", "refunded"] as const;
+const PAYMENT_STATUSES = ["paid", "pending", "authorized", "refunded"] as const;
+const CUSTOMER_STATUSES = ["active", "inactive", "churned"] as const;
+const SUBSCRIPTION_STATUSES = ["active", "canceled", "trial"] as const;
+const TICKET_STATUSES = ["open", "closed"] as const;
+const TICKET_PRIORITIES = ["low", "medium", "high"] as const;
+const PLATFORMS = ["google", "meta", "linkedin", "twitter"] as const;
+const INVOICE_STATUSES = ["paid", "pending", "overdue"] as const;
+const PAYMENT_METHODS = ["card", "bank_transfer", "cash", "paypal"] as const;
+const PAYMENT_TX_STATUSES = ["completed", "pending", "failed"] as const;
+const REFUND_STATUSES = ["approved", "pending", "rejected"] as const;
+const SHIPMENT_STATUSES = [
+  "in_transit",
+  "delivered",
+  "pending",
+  "returned",
+] as const;
+const LOYALTY_REASONS = [
+  "purchase",
+  "referral",
+  "bonus",
+  "redemption",
+] as const;
+const PO_STATUSES = ["pending", "shipped", "received", "cancelled"] as const;
+const PLAN_NAMES = ["Basic", "Starter", "Growth", "Pro", "Enterprise"] as const;
+
+function randomDate(start: Date, end: Date): string {
+  return faker.date
+    .between({ from: start, to: end })
+    .toISOString()
+    .split("T")[0];
+}
+
+function randomDateTime(start: Date, end: Date): string {
+  return faker.date.between({ from: start, to: end }).toISOString();
+}
+
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("🌱 Seeding database with faker...");
 
-  // // Clear existing data (children first to satisfy foreign keys)
-  // await db.delete(orderItemsTable);
-  // await db.delete(supportTicketsTable);
-  // await db.delete(subscriptionsTable);
-  // await db.delete(ordersTable);
-  // await db.delete(productsTable);
-  // await db.delete(employeesTable);
-  // await db.delete(campaignsTable);
-  // await db.delete(customersTable);
-  // await db.delete(companiesTable);
+  // Clear existing data (children first to satisfy foreign keys)
+  await db.delete(shippingAddressesTable);
+  await db.delete(taxRatesTable);
+  await db.delete(regionsTable);
+  await db.delete(departmentsTable);
+  await db.delete(purchaseOrdersTable);
+  await db.delete(loyaltyPointsTable);
+  await db.delete(reviewsTable);
+  await db.delete(shipmentsTable);
+  await db.delete(refundsTable);
+  await db.delete(paymentsTable);
+  await db.delete(invoicesTable);
+  await db.delete(campaignsTable);
+  await db.delete(supportTicketsTable);
+  await db.delete(subscriptionsTable);
+  await db.delete(orderItemsTable);
+  await db.delete(ordersTable);
+  await db.delete(inventoryTable);
+  await db.delete(productsTable);
+  await db.delete(employeesTable);
+  await db.delete(customersTable);
+  await db.delete(couponsTable);
+  await db.delete(warehousesTable);
+  await db.delete(vendorsTable);
+  await db.delete(companiesTable);
 
-  // companies (10)
-  await db.insert(companiesTable).values([
-    { id: 1, name: "Acme Analytics", industry: "SaaS", country: "USA" },
-    {
-      id: 2,
-      name: "Nordic Commerce",
-      industry: "E-commerce",
-      country: "Sweden",
-    },
-    {
-      id: 3,
-      name: "Bluefin Health",
-      industry: "Healthcare",
-      country: "Canada",
-    },
-    { id: 4, name: "Quantum Ledger", industry: "Fintech", country: "UK" },
-    { id: 5, name: "GreenGrid Energy", industry: "Energy", country: "Germany" },
-    {
-      id: 6,
-      name: "Skyline Mobility",
-      industry: "Transportation",
-      country: "Netherlands",
-    },
-    { id: 7, name: "Orbit Edu", industry: "EdTech", country: "India" },
-    {
-      id: 8,
-      name: "Harvest Foods",
-      industry: "Food & Beverage",
-      country: "Australia",
-    },
-    { id: 9, name: "Pixel Forge", industry: "Gaming", country: "Japan" },
-    {
-      id: 10,
-      name: "Aster Security",
-      industry: "Cybersecurity",
-      country: "Singapore",
-    },
-  ]);
+  const startDate = new Date("2024-01-01");
+  const endDate = new Date("2025-06-30");
 
-  // employees (10)
-  await db.insert(employeesTable).values([
-    {
-      id: 1,
-      company_id: 1,
-      name: "Olivia Carter",
-      email: "olivia.carter@acme.com",
-      department: "Engineering",
-      role: "Software Engineer",
-    },
-    {
-      id: 2,
-      company_id: 2,
-      name: "Liam Berg",
-      email: "liam.berg@nordiccommerce.com",
-      department: "Operations",
-      role: "Operations Manager",
-    },
-    {
-      id: 3,
-      company_id: 3,
-      name: "Maya Thompson",
-      email: "maya.thompson@bluefinhealth.com",
-      department: "Product",
-      role: "Product Manager",
-    },
-    {
-      id: 4,
-      company_id: 4,
-      name: "Noah Patel",
-      email: "noah.patel@quantumledger.com",
-      department: "Finance",
-      role: "Financial Analyst",
-    },
-    {
-      id: 5,
-      company_id: 5,
-      name: "Emma Schneider",
-      email: "emma.schneider@greengrid.com",
-      department: "R&D",
-      role: "Research Scientist",
-    },
-    {
-      id: 6,
-      company_id: 6,
-      name: "Lucas van Dijk",
-      email: "lucas.vandijk@skylinemobility.com",
-      department: "Logistics",
-      role: "Logistics Lead",
-    },
-    {
-      id: 7,
-      company_id: 7,
-      name: "Aarav Mehta",
-      email: "aarav.mehta@orbitedu.com",
-      department: "Customer Success",
-      role: "CS Specialist",
-    },
-    {
-      id: 8,
-      company_id: 8,
-      name: "Sophia Nguyen",
-      email: "sophia.nguyen@harvestfoods.com",
-      department: "Marketing",
-      role: "Marketing Manager",
-    },
-    {
-      id: 9,
-      company_id: 9,
-      name: "Hiro Tanaka",
-      email: "hiro.tanaka@pixelforge.com",
-      department: "Design",
-      role: "Game Designer",
-    },
-    {
-      id: 10,
-      company_id: 10,
-      name: "Zoe Lim",
-      email: "zoe.lim@astersecurity.com",
-      department: "Security",
-      role: "Security Engineer",
-    },
-  ]);
+  // ============================================================
+  // 1. COMPANIES (20)
+  // ============================================================
+  console.log("  Seeding companies...");
+  const companyIds: number[] = [];
+  const companiesData = Array.from({ length: 20 }, (_, i) => {
+    const id = i + 1;
+    companyIds.push(id);
+    return {
+      id,
+      name: faker.company.name(),
+      industry: faker.helpers.arrayElement([
+        "SaaS",
+        "E-commerce",
+        "Healthcare",
+        "Fintech",
+        "Energy",
+        "Transportation",
+        "EdTech",
+        "Food & Beverage",
+        "Gaming",
+        "Cybersecurity",
+        "Real Estate",
+        "Manufacturing",
+        "Logistics",
+        "Media",
+        "Telecommunications",
+      ]),
+      country: faker.location.country(),
+    };
+  });
+  await db.insert(companiesTable).values(companiesData);
 
-  // customers (10)
-  await db.insert(customersTable).values([
-    {
-      id: 1,
-      company_id: 1,
-      first_name: "Ethan",
-      last_name: "Reed",
-      email: "ethan.reed@example.com",
-      city: "San Francisco",
-      state: "CA",
-      country: "USA",
-      signup_date: "2025-01-05",
-      status: "active",
-      total_spent: 1499.5,
-    },
-    {
-      id: 2,
-      company_id: 2,
-      first_name: "Isla",
-      last_name: "Johansson",
-      email: "isla.johansson@example.com",
-      city: "Stockholm",
-      state: "Stockholm",
-      country: "Sweden",
-      signup_date: "2025-01-08",
-      status: "active",
-      total_spent: 820.0,
-    },
-    {
-      id: 3,
-      company_id: 3,
-      first_name: "Mason",
-      last_name: "Clark",
-      email: "mason.clark@example.com",
-      city: "Toronto",
-      state: "ON",
-      country: "Canada",
-      signup_date: "2025-01-12",
-      status: "inactive",
-      total_spent: 230.75,
-    },
-    {
-      id: 4,
-      company_id: 4,
-      first_name: "Ava",
-      last_name: "Shah",
-      email: "ava.shah@example.com",
-      city: "London",
-      state: "England",
-      country: "UK",
-      signup_date: "2025-01-16",
-      status: "active",
-      total_spent: 2640.0,
-    },
-    {
-      id: 5,
-      company_id: 5,
-      first_name: "Leo",
-      last_name: "Keller",
-      email: "leo.keller@example.com",
-      city: "Berlin",
-      state: "Berlin",
-      country: "Germany",
-      signup_date: "2025-01-20",
-      status: "churned",
-      total_spent: 99.99,
-    },
-    {
-      id: 6,
-      company_id: 6,
-      first_name: "Mila",
-      last_name: "de Vries",
-      email: "mila.devries@example.com",
-      city: "Amsterdam",
-      state: "North Holland",
-      country: "Netherlands",
-      signup_date: "2025-01-22",
-      status: "active",
-      total_spent: 410.4,
-    },
-    {
-      id: 7,
-      company_id: 7,
-      first_name: "Arjun",
-      last_name: "Iyer",
-      email: "arjun.iyer@example.com",
-      city: "Bengaluru",
-      state: "Karnataka",
-      country: "India",
-      signup_date: "2025-01-24",
-      status: "active",
-      total_spent: 560.0,
-    },
-    {
-      id: 8,
-      company_id: 8,
-      first_name: "Charlotte",
-      last_name: "Brown",
-      email: "charlotte.brown@example.com",
-      city: "Sydney",
-      state: "NSW",
-      country: "Australia",
-      signup_date: "2025-01-26",
-      status: "inactive",
-      total_spent: 305.2,
-    },
-    {
-      id: 9,
-      company_id: 9,
-      first_name: "Ren",
-      last_name: "Sato",
-      email: "ren.sato@example.com",
-      city: "Tokyo",
-      state: "Tokyo",
-      country: "Japan",
-      signup_date: "2025-01-28",
-      status: "active",
-      total_spent: 1200.0,
-    },
-    {
-      id: 10,
-      company_id: 10,
-      first_name: "Nur",
-      last_name: "Ong",
-      email: "nur.ong@example.com",
-      city: "Singapore",
-      state: "Central",
-      country: "Singapore",
-      signup_date: "2025-01-30",
-      status: "active",
-      total_spent: 980.45,
-    },
-  ]);
+  // ============================================================
+  // 2. WAREHOUSES (10)
+  // ============================================================
+  console.log("  Seeding warehouses...");
+  const warehouseIds: number[] = [];
+  const warehousesData = Array.from({ length: 10 }, (_, i) => {
+    const id = i + 1;
+    warehouseIds.push(id);
+    return {
+      id,
+      name: `Warehouse ${faker.location.city()}`,
+      address: faker.location.streetAddress(),
+      city: faker.location.city(),
+      country: faker.location.country(),
+      capacity: faker.number.int({ min: 500, max: 5000 }),
+    };
+  });
+  await db.insert(warehousesTable).values(warehousesData);
 
-  // products (10)
-  await db.insert(productsTable).values([
-    {
-      id: 1,
-      company_id: 1,
-      name: "Insights Pro",
-      category: "Software",
-      price: 199.99,
-      stock: 50,
-      is_active: 1,
-    },
-    {
-      id: 2,
-      company_id: 2,
-      name: "Cart Booster",
-      category: "Plugin",
-      price: 79.0,
-      stock: 120,
-      is_active: 1,
-    },
-    {
-      id: 3,
-      company_id: 3,
-      name: "Care Monitor",
-      category: "Device",
-      price: 349.5,
-      stock: 40,
-      is_active: 1,
-    },
-    {
-      id: 4,
-      company_id: 4,
-      name: "Ledger Sync",
-      category: "Software",
-      price: 129.0,
-      stock: 70,
-      is_active: 1,
-    },
-    {
-      id: 5,
-      company_id: 5,
-      name: "Grid Optimizer",
-      category: "Service",
-      price: 499.0,
-      stock: 20,
-      is_active: 1,
-    },
-    {
-      id: 6,
-      company_id: 6,
-      name: "Fleet Tracker",
-      category: "Hardware",
-      price: 259.0,
-      stock: 35,
-      is_active: 1,
-    },
-    {
-      id: 7,
-      company_id: 7,
-      name: "Tutor Suite",
-      category: "Software",
-      price: 59.0,
-      stock: 200,
-      is_active: 1,
-    },
-    {
-      id: 8,
-      company_id: 8,
-      name: "FreshBox Premium",
-      category: "Subscription",
-      price: 39.99,
-      stock: 500,
-      is_active: 1,
-    },
-    {
-      id: 9,
-      company_id: 9,
-      name: "XP Booster Pack",
-      category: "In-game",
-      price: 14.99,
-      stock: 1000,
-      is_active: 1,
-    },
-    {
-      id: 10,
-      company_id: 10,
-      name: "Threat Shield",
-      category: "Security",
-      price: 299.0,
-      stock: 60,
-      is_active: 1,
-    },
-  ]);
+  // ============================================================
+  // 3. VENDORS (30)
+  // ============================================================
+  console.log("  Seeding vendors...");
+  const vendorIds: number[] = [];
+  const vendorsData = Array.from({ length: 30 }, (_, i) => {
+    const id = i + 1;
+    vendorIds.push(id);
+    return {
+      id,
+      name: faker.company.name(),
+      contact_name: faker.person.fullName(),
+      email: faker.internet.email(),
+      phone: faker.phone.number(),
+      country: faker.location.country(),
+    };
+  });
+  await db.insert(vendorsTable).values(vendorsData);
 
-  // orders (10)
-  await db.insert(ordersTable).values([
-    {
-      id: 1,
-      company_id: 1,
-      customer_id: 1,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 199.99,
-      order_date: "2025-02-01",
-    },
-    {
-      id: 2,
-      company_id: 2,
-      customer_id: 2,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 158.0,
-      order_date: "2025-02-02",
-    },
-    {
-      id: 3,
-      company_id: 3,
-      customer_id: 3,
-      order_status: "pending",
-      payment_status: "authorized",
-      total_amount: 349.5,
-      order_date: "2025-02-03",
-    },
-    {
-      id: 4,
-      company_id: 4,
-      customer_id: 4,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 258.0,
-      order_date: "2025-02-04",
-    },
-    {
-      id: 5,
-      company_id: 5,
-      customer_id: 5,
-      order_status: "refunded",
-      payment_status: "refunded",
-      total_amount: 499.0,
-      order_date: "2025-02-05",
-    },
-    {
-      id: 6,
-      company_id: 6,
-      customer_id: 6,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 518.0,
-      order_date: "2025-02-06",
-    },
-    {
-      id: 7,
-      company_id: 7,
-      customer_id: 7,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 177.0,
-      order_date: "2025-02-07",
-    },
-    {
-      id: 8,
-      company_id: 8,
-      customer_id: 8,
-      order_status: "pending",
-      payment_status: "pending",
-      total_amount: 79.98,
-      order_date: "2025-02-08",
-    },
-    {
-      id: 9,
-      company_id: 9,
-      customer_id: 9,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 44.97,
-      order_date: "2025-02-09",
-    },
-    {
-      id: 10,
-      company_id: 10,
-      customer_id: 10,
-      order_status: "completed",
-      payment_status: "paid",
-      total_amount: 598.0,
-      order_date: "2025-02-10",
-    },
-  ]);
+  // ============================================================
+  // 4. COUPONS (50)
+  // ============================================================
+  console.log("  Seeding coupons...");
+  const couponsData = Array.from({ length: 50 }, (_, i) => ({
+    id: i + 1,
+    code: faker.string.alphanumeric(8).toUpperCase(),
+    discount_percent: faker.number.float({
+      min: 5,
+      max: 50,
+      fractionDigits: 0,
+    }),
+    max_uses: faker.number.int({ min: 10, max: 500 }),
+    used_count: faker.number.int({ min: 0, max: 100 }),
+    expires_at: randomDate(new Date("2025-06-01"), new Date("2026-12-31")),
+  }));
+  await db.insert(couponsTable).values(couponsData);
 
-  // order_items (10)
-  await db.insert(orderItemsTable).values([
-    {
-      id: 1,
-      order_id: 1,
-      product_id: 1,
-      quantity: 1,
-      unit_price: 199.99,
-      total_price: 199.99,
-    },
-    {
-      id: 2,
-      order_id: 2,
-      product_id: 2,
-      quantity: 2,
-      unit_price: 79.0,
-      total_price: 158.0,
-    },
-    {
-      id: 3,
-      order_id: 3,
-      product_id: 3,
-      quantity: 1,
-      unit_price: 349.5,
-      total_price: 349.5,
-    },
-    {
-      id: 4,
-      order_id: 4,
-      product_id: 4,
-      quantity: 2,
-      unit_price: 129.0,
-      total_price: 258.0,
-    },
-    {
-      id: 5,
-      order_id: 5,
-      product_id: 5,
-      quantity: 1,
-      unit_price: 499.0,
-      total_price: 499.0,
-    },
-    {
-      id: 6,
-      order_id: 6,
-      product_id: 6,
-      quantity: 2,
-      unit_price: 259.0,
-      total_price: 518.0,
-    },
-    {
-      id: 7,
-      order_id: 7,
-      product_id: 7,
-      quantity: 3,
-      unit_price: 59.0,
-      total_price: 177.0,
-    },
-    {
-      id: 8,
-      order_id: 8,
-      product_id: 8,
-      quantity: 2,
-      unit_price: 39.99,
-      total_price: 79.98,
-    },
-    {
-      id: 9,
-      order_id: 9,
-      product_id: 9,
-      quantity: 3,
-      unit_price: 14.99,
-      total_price: 44.97,
-    },
-    {
-      id: 10,
-      order_id: 10,
-      product_id: 10,
-      quantity: 2,
-      unit_price: 299.0,
-      total_price: 598.0,
-    },
-  ]);
+  // ============================================================
+  // 5. REGIONS (10)
+  // ============================================================
+  console.log("  Seeding regions...");
+  const regionIds: number[] = [];
+  const regionsData = Array.from({ length: 10 }, (_, i) => {
+    const id = i + 1;
+    regionIds.push(id);
+    return {
+      id,
+      name: faker.location.city(),
+      country: faker.location.country(),
+    };
+  });
+  await db.insert(regionsTable).values(regionsData);
 
-  // subscriptions (10)
-  await db.insert(subscriptionsTable).values([
-    {
-      id: 1,
-      customer_id: 1,
-      plan_name: "Pro",
-      monthly_price: 49.99,
-      status: "active",
-      start_date: "2025-02-01",
-      end_date: null,
-      renewal_date: "2025-03-01",
-    },
-    {
-      id: 2,
-      customer_id: 2,
-      plan_name: "Growth",
-      monthly_price: 29.0,
-      status: "active",
-      start_date: "2025-02-02",
-      end_date: null,
-      renewal_date: "2025-03-02",
-    },
-    {
-      id: 3,
-      customer_id: 3,
-      plan_name: "Starter",
-      monthly_price: 19.0,
-      status: "canceled",
-      start_date: "2025-02-03",
-      end_date: "2025-03-03",
-      renewal_date: null,
-    },
-    {
-      id: 4,
-      customer_id: 4,
-      plan_name: "Enterprise",
-      monthly_price: 199.0,
-      status: "active",
-      start_date: "2025-02-04",
-      end_date: null,
-      renewal_date: "2025-03-04",
-    },
-    {
-      id: 5,
-      customer_id: 5,
-      plan_name: "Basic",
-      monthly_price: 9.99,
-      status: "trial",
-      start_date: "2025-02-05",
-      end_date: "2025-02-19",
-      renewal_date: "2025-02-20",
-    },
-    {
-      id: 6,
-      customer_id: 6,
-      plan_name: "Pro",
-      monthly_price: 49.99,
-      status: "active",
-      start_date: "2025-02-06",
-      end_date: null,
-      renewal_date: "2025-03-06",
-    },
-    {
-      id: 7,
-      customer_id: 7,
-      plan_name: "Growth",
-      monthly_price: 29.0,
-      status: "active",
-      start_date: "2025-02-07",
-      end_date: null,
-      renewal_date: "2025-03-07",
-    },
-    {
-      id: 8,
-      customer_id: 8,
-      plan_name: "Starter",
-      monthly_price: 19.0,
-      status: "canceled",
-      start_date: "2025-02-08",
-      end_date: "2025-02-28",
-      renewal_date: null,
-    },
-    {
-      id: 9,
-      customer_id: 9,
-      plan_name: "Pro",
-      monthly_price: 49.99,
-      status: "active",
-      start_date: "2025-02-09",
-      end_date: null,
-      renewal_date: "2025-03-09",
-    },
-    {
-      id: 10,
-      customer_id: 10,
-      plan_name: "Enterprise",
-      monthly_price: 199.0,
-      status: "trial",
-      start_date: "2025-02-10",
-      end_date: "2025-02-24",
-      renewal_date: "2025-02-25",
-    },
-  ]);
+  // ============================================================
+  // 6. EMPLOYEES (200)
+  // ============================================================
+  console.log("  Seeding employees...");
+  const employeeIds: number[] = [];
+  const employeesData = Array.from({ length: 200 }, (_, i) => {
+    const id = i + 1;
+    employeeIds.push(id);
+    return {
+      id,
+      company_id: faker.helpers.arrayElement(companyIds),
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      department: faker.helpers.arrayElement([
+        "Engineering",
+        "Marketing",
+        "Sales",
+        "Finance",
+        "Operations",
+        "Product",
+        "Design",
+        "HR",
+        "Legal",
+        "Support",
+        "R&D",
+        "Data Science",
+      ]),
+      role: faker.person.jobTitle(),
+    };
+  });
+  await db.insert(employeesTable).values(employeesData);
 
-  // support_tickets (10)
-  await db.insert(supportTicketsTable).values([
-    {
-      id: 1,
-      customer_id: 1,
-      subject: "Unable to export report",
-      status: "open",
-      priority: "high",
-    },
-    {
-      id: 2,
-      customer_id: 2,
-      subject: "Billing invoice mismatch",
-      status: "closed",
-      priority: "medium",
-    },
-    {
-      id: 3,
-      customer_id: 3,
-      subject: "Device sync delay",
-      status: "open",
-      priority: "medium",
-    },
-    {
-      id: 4,
-      customer_id: 4,
-      subject: "2FA setup issue",
-      status: "closed",
-      priority: "low",
-    },
-    {
-      id: 5,
-      customer_id: 5,
-      subject: "Refund not received",
-      status: "open",
-      priority: "high",
-    },
-    {
-      id: 6,
-      customer_id: 6,
-      subject: "Tracker firmware update help",
-      status: "closed",
-      priority: "low",
-    },
-    {
-      id: 7,
-      customer_id: 7,
-      subject: "Course progress reset",
-      status: "open",
-      priority: "high",
-    },
-    {
-      id: 8,
-      customer_id: 8,
-      subject: "Subscription cancellation",
-      status: "closed",
-      priority: "medium",
-    },
-    {
-      id: 9,
-      customer_id: 9,
-      subject: "In-game purchase failed",
-      status: "open",
-      priority: "high",
-    },
-    {
-      id: 10,
-      customer_id: 10,
-      subject: "Security alert false positive",
-      status: "open",
-      priority: "medium",
-    },
-  ]);
+  // ============================================================
+  // 7. CUSTOMERS (500)
+  // ============================================================
+  console.log("  Seeding customers...");
+  const customerIds: number[] = [];
+  const customersData = Array.from({ length: 500 }, (_, i) => {
+    const id = i + 1;
+    customerIds.push(id);
+    return {
+      id,
+      company_id: faker.helpers.arrayElement(companyIds),
+      first_name: faker.person.firstName(),
+      last_name: faker.person.lastName(),
+      email: faker.internet.email(),
+      city: faker.location.city(),
+      state: faker.location.state(),
+      country: faker.location.country(),
+      signup_date: randomDate(startDate, endDate),
+      status: faker.helpers.arrayElement(CUSTOMER_STATUSES),
+      total_spent: faker.number.float({ min: 0, max: 5000, fractionDigits: 2 }),
+    };
+  });
+  await db.insert(customersTable).values(customersData);
 
-  // campaigns (10)
-  await db.insert(campaignsTable).values([
-    {
-      id: 1,
-      company_id: 1,
-      name: "Q1 Lead Gen",
-      platform: "google",
-      budget: 5000,
-      clicks: 4200,
-      conversions: 320,
-      start_date: "2025-01-01",
-      end_date: "2025-03-31",
-    },
-    {
-      id: 2,
-      company_id: 2,
-      name: "Spring Retargeting",
-      platform: "meta",
-      budget: 3200,
-      clicks: 2800,
-      conversions: 190,
-      start_date: "2025-02-01",
-      end_date: "2025-04-30",
-    },
-    {
-      id: 3,
-      company_id: 3,
-      name: "Healthcare Awareness",
-      platform: "linkedin",
-      budget: 4100,
-      clicks: 1900,
-      conversions: 110,
-      start_date: "2025-01-15",
-      end_date: "2025-03-15",
-    },
-    {
-      id: 4,
-      company_id: 4,
-      name: "Fintech Expansion",
-      platform: "google",
-      budget: 6200,
-      clicks: 5100,
-      conversions: 410,
-      start_date: "2025-01-10",
-      end_date: "2025-04-10",
-    },
-    {
-      id: 5,
-      company_id: 5,
-      name: "Green Awareness",
-      platform: "meta",
-      budget: 2800,
-      clicks: 2400,
-      conversions: 140,
-      start_date: "2025-02-10",
-      end_date: "2025-05-10",
-    },
-    {
-      id: 6,
-      company_id: 6,
-      name: "Urban Mobility",
-      platform: "google",
-      budget: 4700,
-      clicks: 3600,
-      conversions: 260,
-      start_date: "2025-01-20",
-      end_date: "2025-04-20",
-    },
-    {
-      id: 7,
-      company_id: 7,
-      name: "Back-to-School",
-      platform: "meta",
-      budget: 3900,
-      clicks: 3100,
-      conversions: 230,
-      start_date: "2025-02-05",
-      end_date: "2025-05-05",
-    },
-    {
-      id: 8,
-      company_id: 8,
-      name: "FreshBox Launch",
-      platform: "google",
-      budget: 3500,
-      clicks: 2950,
-      conversions: 210,
-      start_date: "2025-01-25",
-      end_date: "2025-03-25",
-    },
-    {
-      id: 9,
-      company_id: 9,
-      name: "New Season Pass",
-      platform: "meta",
-      budget: 5400,
-      clicks: 4800,
-      conversions: 390,
-      start_date: "2025-02-12",
-      end_date: "2025-04-12",
-    },
-    {
-      id: 10,
-      company_id: 10,
-      name: "Zero Trust Push",
-      platform: "linkedin",
-      budget: 4300,
-      clicks: 2200,
-      conversions: 160,
-      start_date: "2025-01-18",
-      end_date: "2025-04-18",
-    },
-  ]);
+  // ============================================================
+  // 8. DEPARTMENTS (15)
+  // ============================================================
+  console.log("  Seeding departments...");
+  const departmentsData = Array.from({ length: 15 }, (_, i) => ({
+    id: i + 1,
+    company_id: faker.helpers.arrayElement(companyIds),
+    name: faker.commerce.department(),
+    head_employee_id: faker.helpers.arrayElement(employeeIds),
+    budget: faker.number.float({ min: 10000, max: 500000, fractionDigits: 2 }),
+  }));
+  await db.insert(departmentsTable).values(departmentsData);
+
+  // ============================================================
+  // 9. PRODUCTS (100)
+  // ============================================================
+  console.log("  Seeding products...");
+  const productIds: number[] = [];
+  const productsData = Array.from({ length: 100 }, (_, i) => {
+    const id = i + 1;
+    productIds.push(id);
+    return {
+      id,
+      company_id: faker.helpers.arrayElement(companyIds),
+      name: faker.commerce.productName(),
+      category: faker.commerce.department(),
+      price: faker.number.float({ min: 5, max: 999, fractionDigits: 2 }),
+      stock: faker.number.int({ min: 0, max: 500 }),
+      is_active: faker.helpers.arrayElement([0, 1]),
+    };
+  });
+  await db.insert(productsTable).values(productsData);
+
+  // ============================================================
+  // 10. ORDERS (1000)
+  // ============================================================
+  console.log("  Seeding orders...");
+  const orderIds: number[] = [];
+  const ordersData = Array.from({ length: 1000 }, (_, i) => {
+    const id = i + 1;
+    orderIds.push(id);
+    return {
+      id,
+      company_id: faker.helpers.arrayElement(companyIds),
+      customer_id: faker.helpers.arrayElement(customerIds),
+      order_status: faker.helpers.arrayElement(ORDER_STATUSES),
+      payment_status: faker.helpers.arrayElement(PAYMENT_STATUSES),
+      total_amount: faker.number.float({
+        min: 10,
+        max: 2000,
+        fractionDigits: 2,
+      }),
+      order_date: randomDate(startDate, endDate),
+    };
+  });
+  await db.insert(ordersTable).values(ordersData);
+
+  // ============================================================
+  // 11. ORDER_ITEMS (2000)
+  // ============================================================
+  console.log("  Seeding order items...");
+  const orderItemsData = Array.from({ length: 2000 }, (_, i) => {
+    const quantity = faker.number.int({ min: 1, max: 10 });
+    const unitPrice = faker.number.float({
+      min: 5,
+      max: 500,
+      fractionDigits: 2,
+    });
+    return {
+      id: i + 1,
+      order_id: faker.helpers.arrayElement(orderIds),
+      product_id: faker.helpers.arrayElement(productIds),
+      quantity,
+      unit_price: unitPrice,
+      total_price: parseFloat((quantity * unitPrice).toFixed(2)),
+    };
+  });
+  await db.insert(orderItemsTable).values(orderItemsData);
+
+  // ============================================================
+  // 12. SUBSCRIPTIONS (300)
+  // ============================================================
+  console.log("  Seeding subscriptions...");
+  const subscriptionsData = Array.from({ length: 300 }, (_, i) => {
+    const status = faker.helpers.arrayElement(SUBSCRIPTION_STATUSES);
+    const startDateStr = randomDate(startDate, endDate);
+    return {
+      id: i + 1,
+      customer_id: faker.helpers.arrayElement(customerIds),
+      plan_name: faker.helpers.arrayElement(PLAN_NAMES),
+      monthly_price: faker.number.float({
+        min: 9.99,
+        max: 199,
+        fractionDigits: 2,
+      }),
+      status,
+      start_date: startDateStr,
+      end_date:
+        status === "canceled"
+          ? randomDate(new Date(startDateStr), endDate)
+          : null,
+      renewal_date:
+        status === "active"
+          ? randomDate(endDate, new Date("2026-06-30"))
+          : null,
+    };
+  });
+  await db.insert(subscriptionsTable).values(subscriptionsData);
+
+  // ============================================================
+  // 13. SUPPORT_TICKETS (400)
+  // ============================================================
+  console.log("  Seeding support tickets...");
+  const supportTicketsData = Array.from({ length: 400 }, (_, i) => ({
+    id: i + 1,
+    customer_id: faker.helpers.arrayElement(customerIds),
+    subject: faker.lorem.sentence(),
+    status: faker.helpers.arrayElement(TICKET_STATUSES),
+    priority: faker.helpers.arrayElement(TICKET_PRIORITIES),
+    created_at: randomDateTime(startDate, endDate),
+  }));
+  await db.insert(supportTicketsTable).values(supportTicketsData);
+
+  // ============================================================
+  // 14. CAMPAIGNS (100)
+  // ============================================================
+  console.log("  Seeding campaigns...");
+  const campaignsData = Array.from({ length: 100 }, (_, i) => {
+    const start = randomDate(startDate, endDate);
+    return {
+      id: i + 1,
+      company_id: faker.helpers.arrayElement(companyIds),
+      name: `${faker.company.buzzAdjective()} ${faker.company.buzzNoun()}`,
+      platform: faker.helpers.arrayElement(PLATFORMS),
+      budget: faker.number.float({ min: 500, max: 10000, fractionDigits: 2 }),
+      clicks: faker.number.int({ min: 100, max: 10000 }),
+      conversions: faker.number.int({ min: 10, max: 1000 }),
+      start_date: start,
+      end_date: randomDate(new Date(start), new Date("2026-06-30")),
+    };
+  });
+  await db.insert(campaignsTable).values(campaignsData);
+
+  // ============================================================
+  // 15. INVOICES (800)
+  // ============================================================
+  console.log("  Seeding invoices...");
+  const invoiceIds: number[] = [];
+  const invoicesData = Array.from({ length: 800 }, (_, i) => {
+    const id = i + 1;
+    invoiceIds.push(id);
+    return {
+      id,
+      customer_id: faker.helpers.arrayElement(customerIds),
+      invoice_number: `INV-${faker.string.numeric(6)}`,
+      amount: faker.number.float({ min: 20, max: 3000, fractionDigits: 2 }),
+      tax: faker.number.float({ min: 0, max: 500, fractionDigits: 2 }),
+      status: faker.helpers.arrayElement(INVOICE_STATUSES),
+      due_date: randomDate(endDate, new Date("2026-06-30")),
+    };
+  });
+  await db.insert(invoicesTable).values(invoicesData);
+
+  // ============================================================
+  // 16. PAYMENTS (800)
+  // ============================================================
+  console.log("  Seeding payments...");
+  const paymentsData = Array.from({ length: 800 }, (_, i) => ({
+    id: i + 1,
+    invoice_id: faker.helpers.arrayElement(invoiceIds),
+    amount: faker.number.float({ min: 20, max: 3000, fractionDigits: 2 }),
+    method: faker.helpers.arrayElement(PAYMENT_METHODS),
+    status: faker.helpers.arrayElement(PAYMENT_TX_STATUSES),
+    paid_at: randomDateTime(startDate, endDate),
+  }));
+  await db.insert(paymentsTable).values(paymentsData);
+
+  // ============================================================
+  // 17. REFUNDS (100)
+  // ============================================================
+  console.log("  Seeding refunds...");
+  const refundsData = Array.from({ length: 100 }, (_, i) => ({
+    id: i + 1,
+    order_id: faker.helpers.arrayElement(orderIds),
+    amount: faker.number.float({ min: 5, max: 500, fractionDigits: 2 }),
+    reason: faker.lorem.sentence(),
+    status: faker.helpers.arrayElement(REFUND_STATUSES),
+    processed_at: randomDateTime(startDate, endDate),
+  }));
+  await db.insert(refundsTable).values(refundsData);
+
+  // ============================================================
+  // 18. INVENTORY (500)
+  // ============================================================
+  console.log("  Seeding inventory...");
+  const inventoryData = Array.from({ length: 500 }, (_, i) => ({
+    id: i + 1,
+    product_id: faker.helpers.arrayElement(productIds),
+    warehouse_id: faker.helpers.arrayElement(warehouseIds),
+    quantity: faker.number.int({ min: 0, max: 500 }),
+    reorder_point: faker.number.int({ min: 5, max: 50 }),
+  }));
+  await db.insert(inventoryTable).values(inventoryData);
+
+  // ============================================================
+  // 19. REVIEWS (500)
+  // ============================================================
+  console.log("  Seeding reviews...");
+  const reviewsData = Array.from({ length: 500 }, (_, i) => ({
+    id: i + 1,
+    product_id: faker.helpers.arrayElement(productIds),
+    customer_id: faker.helpers.arrayElement(customerIds),
+    rating: faker.number.int({ min: 1, max: 5 }),
+    comment: faker.lorem.paragraph(),
+    created_at: randomDateTime(startDate, endDate),
+  }));
+  await db.insert(reviewsTable).values(reviewsData);
+
+  // ============================================================
+  // 20. SHIPMENTS (600)
+  // ============================================================
+  console.log("  Seeding shipments...");
+  const shipmentsData = Array.from({ length: 600 }, (_, i) => {
+    const shippedDate = randomDateTime(startDate, endDate);
+    const status = faker.helpers.arrayElement(SHIPMENT_STATUSES);
+    return {
+      id: i + 1,
+      order_id: faker.helpers.arrayElement(orderIds),
+      warehouse_id: faker.helpers.arrayElement(warehouseIds),
+      carrier: faker.helpers.arrayElement([
+        "FedEx",
+        "UPS",
+        "DHL",
+        "USPS",
+        "Amazon Logistics",
+      ]),
+      tracking_number: faker.string.uuid(),
+      status,
+      shipped_at: shippedDate,
+      delivered_at:
+        status === "delivered"
+          ? randomDateTime(new Date(shippedDate), endDate)
+          : null,
+    };
+  });
+  await db.insert(shipmentsTable).values(shipmentsData);
+
+  // ============================================================
+  // 21. LOYALTY_POINTS (500)
+  // ============================================================
+  console.log("  Seeding loyalty points...");
+  const loyaltyPointsData = Array.from({ length: 500 }, (_, i) => ({
+    id: i + 1,
+    customer_id: faker.helpers.arrayElement(customerIds),
+    points: faker.number.int({ min: 10, max: 1000 }),
+    reason: faker.helpers.arrayElement(LOYALTY_REASONS),
+    earned_at: randomDateTime(startDate, endDate),
+  }));
+  await db.insert(loyaltyPointsTable).values(loyaltyPointsData);
+
+  // ============================================================
+  // 22. PURCHASE_ORDERS (100)
+  // ============================================================
+  console.log("  Seeding purchase orders...");
+  const purchaseOrdersData = Array.from({ length: 100 }, (_, i) => ({
+    id: i + 1,
+    vendor_id: faker.helpers.arrayElement(vendorIds),
+    company_id: faker.helpers.arrayElement(companyIds),
+    total_amount: faker.number.float({
+      min: 100,
+      max: 10000,
+      fractionDigits: 2,
+    }),
+    status: faker.helpers.arrayElement(PO_STATUSES),
+    order_date: randomDate(startDate, endDate),
+  }));
+  await db.insert(purchaseOrdersTable).values(purchaseOrdersData);
+
+  // ============================================================
+  // 23. TAX_RATES (20)
+  // ============================================================
+  console.log("  Seeding tax rates...");
+  const taxRatesData = Array.from({ length: 20 }, (_, i) => ({
+    id: i + 1,
+    region_id: faker.helpers.arrayElement(regionIds),
+    category: faker.helpers.arrayElement([
+      "electronics",
+      "clothing",
+      "food",
+      "services",
+      "software",
+      "hardware",
+      "furniture",
+      "books",
+      "medical",
+      "automotive",
+    ]),
+    rate_percent: faker.number.float({ min: 0, max: 25, fractionDigits: 2 }),
+    description: faker.lorem.sentence(),
+  }));
+  await db.insert(taxRatesTable).values(taxRatesData);
+
+  // ============================================================
+  // 24. SHIPPING_ADDRESSES (500)
+  // ============================================================
+  console.log("  Seeding shipping addresses...");
+  const shippingAddressesData = Array.from({ length: 500 }, (_, i) => ({
+    id: i + 1,
+    customer_id: faker.helpers.arrayElement(customerIds),
+    label: faker.helpers.arrayElement([
+      "Home",
+      "Office",
+      "Billing",
+      "Shipping",
+    ]),
+    street: faker.location.streetAddress(),
+    city: faker.location.city(),
+    state: faker.location.state(),
+    country: faker.location.country(),
+    zip: faker.location.zipCode(),
+    is_default: faker.number.int({ min: 0, max: 1 }),
+  }));
+  await db.insert(shippingAddressesTable).values(shippingAddressesData);
 
   console.log("✅ Database seeded successfully!");
+  console.log(`   Total: 24 tables, ~8,335 rows`);
 }
 
 main()

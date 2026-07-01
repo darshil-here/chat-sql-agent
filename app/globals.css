@@ -71,3 +71,84 @@ body {
   color: var(--text-primary);
   font-family: var(--font-geist-sans), sans-serif;
 }
+
+/* ── Landing Page Design Tokens ── */
+:root {
+  --lp-bg: #171717;
+  --lp-surface-mid: #1a1a1a;
+  --lp-card-surface: #1e1e1e;
+  --lp-text-on-dark: #ffffff;
+  --lp-text-secondary: #d4d4d4;
+  --lp-text-muted: #737373;
+  --lp-primary: #bbf746;
+  --lp-primary-hover: #a3e635;
+  --lp-primary-active: #84cc16;
+  --lp-primary-disabled: #d9f99d;
+  --lp-surface-dark: #171717;
+  --lp-border-dark: #333333;
+  --lp-focus-ring: #bbf746;
+  --lp-badge-bg: #bbf746;
+  --lp-badge-text: #171717;
+  --lp-easing-cta: cubic-bezier(0.25, 1, 0.5, 1);
+  --lp-easing-strong: cubic-bezier(0.22, 1, 0.36, 1);
+  --lp-shadow-card: rgba(0, 0, 0, 0.05) 0px 1px 0px 0px,
+    rgba(0, 0, 0, 0.1) 0px 4px 4px 0px,
+    rgba(0, 0, 0, 0.15) 0px 10px 10px 0px,
+    rgba(0, 0, 0, 0.1) 0px -1px 0px 0px inset;
+}
+
+@keyframes border-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ── Scroll Reveal ── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Border-spin CTA glow ── */
+.btn-shiny {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.btn-shiny::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    transparent 40deg,
+    var(--lp-primary) 80deg,
+    transparent 120deg
+  );
+  animation: border-spin 2.5s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.btn-shiny:hover::before {
+  opacity: 1;
+}

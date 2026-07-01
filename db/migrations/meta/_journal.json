@@ -8,6 +8,13 @@
       "when": 1778758909455,
       "tag": "0000_sturdy_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782825324041,
+      "tag": "0001_awesome_arclight",
+      "breakpoints": true
     }
   ]
 }

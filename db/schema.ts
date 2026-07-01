@@ -1,6 +1,10 @@
 import { text, integer, real, sqliteTable } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
+// ============================================================
+// EXISTING TABLES (9)
+// ============================================================
+
 // companies
 export const companiesTable = sqliteTable("companies", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -144,4 +148,159 @@ export const campaignsTable = sqliteTable("campaigns", {
 
   start_date: text("start_date"),
   end_date: text("end_date"),
+});
+
+// ============================================================
+// NEW TABLES (15)
+// ============================================================
+
+// invoices
+export const invoicesTable = sqliteTable("invoices", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  customer_id: integer("customer_id").references(() => customersTable.id),
+  invoice_number: text("invoice_number").notNull(),
+  amount: real("amount").notNull(),
+  tax: real("tax").default(0),
+  status: text("status"), // paid, pending, overdue
+  due_date: text("due_date"),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// payments
+export const paymentsTable = sqliteTable("payments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  invoice_id: integer("invoice_id").references(() => invoicesTable.id),
+  amount: real("amount").notNull(),
+  method: text("method"), // card, bank_transfer, cash, paypal
+  status: text("status"), // completed, pending, failed
+  paid_at: text("paid_at"),
+});
+
+// refunds
+export const refundsTable = sqliteTable("refunds", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  order_id: integer("order_id").references(() => ordersTable.id),
+  amount: real("amount").notNull(),
+  reason: text("reason"),
+  status: text("status"), // approved, pending, rejected
+  processed_at: text("processed_at"),
+});
+
+// warehouses
+export const warehousesTable = sqliteTable("warehouses", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  address: text("address"),
+  city: text("city"),
+  country: text("country"),
+  capacity: integer("capacity"),
+});
+
+// inventory
+export const inventoryTable = sqliteTable("inventory", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  product_id: integer("product_id").references(() => productsTable.id),
+  warehouse_id: integer("warehouse_id").references(() => warehousesTable.id),
+  quantity: integer("quantity").default(0),
+  reorder_point: integer("reorder_point").default(10),
+});
+
+// reviews
+export const reviewsTable = sqliteTable("reviews", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  product_id: integer("product_id").references(() => productsTable.id),
+  customer_id: integer("customer_id").references(() => customersTable.id),
+  rating: integer("rating").notNull(), // 1-5
+  comment: text("comment"),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// shipments
+export const shipmentsTable = sqliteTable("shipments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  order_id: integer("order_id").references(() => ordersTable.id),
+  warehouse_id: integer("warehouse_id").references(() => warehousesTable.id),
+  carrier: text("carrier"),
+  tracking_number: text("tracking_number"),
+  status: text("status"), // in_transit, delivered, pending, returned
+  shipped_at: text("shipped_at"),
+  delivered_at: text("delivered_at"),
+});
+
+// coupons
+export const couponsTable = sqliteTable("coupons", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull(),
+  discount_percent: real("discount_percent"),
+  max_uses: integer("max_uses"),
+  used_count: integer("used_count").default(0),
+  expires_at: text("expires_at"),
+});
+
+// loyalty_points
+export const loyaltyPointsTable = sqliteTable("loyalty_points", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  customer_id: integer("customer_id").references(() => customersTable.id),
+  points: integer("points").notNull(),
+  reason: text("reason"), // purchase, referral, bonus, redemption
+  earned_at: text("earned_at"),
+});
+
+// vendors
+export const vendorsTable = sqliteTable("vendors", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  contact_name: text("contact_name"),
+  email: text("email"),
+  phone: text("phone"),
+  country: text("country"),
+});
+
+// purchase_orders
+export const purchaseOrdersTable = sqliteTable("purchase_orders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  vendor_id: integer("vendor_id").references(() => vendorsTable.id),
+  company_id: integer("company_id").references(() => companiesTable.id),
+  total_amount: real("total_amount").notNull(),
+  status: text("status"), // pending, shipped, received, cancelled
+  order_date: text("order_date"),
+});
+
+// departments
+export const departmentsTable = sqliteTable("departments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  company_id: integer("company_id").references(() => companiesTable.id),
+  name: text("name").notNull(),
+  head_employee_id: integer("head_employee_id").references(() => employeesTable.id),
+  budget: real("budget").default(0),
+});
+
+// regions
+export const regionsTable = sqliteTable("regions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  country: text("country"),
+  manager_employee_id: integer("manager_employee_id").references(() => employeesTable.id),
+});
+
+// tax_rates
+export const taxRatesTable = sqliteTable("tax_rates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  region_id: integer("region_id").references(() => regionsTable.id),
+  category: text("category"),
+  rate_percent: real("rate_percent").notNull(),
+  description: text("description"),
+});
+
+// shipping_addresses
+export const shippingAddressesTable = sqliteTable("shipping_addresses", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  customer_id: integer("customer_id").references(() => customersTable.id),
+  label: text("label"), // home, office, etc.
+  street: text("street"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country"),
+  zip: text("zip"),
+  is_default: integer("is_default").default(0),
 });

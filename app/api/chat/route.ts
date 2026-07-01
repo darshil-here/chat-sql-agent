@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   streamText,
   UIMessage,
@@ -12,6 +12,10 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 export const maxDuration = 120; // 2 minutes
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
 
 let schemaCache: string | null = null;
 
@@ -105,7 +109,7 @@ export async function POST(req: Request) {
   `;
 
   const result = streamText({
-    model: google("gemini-2.5-flash"),
+    model: openrouter("openai/gpt-oss-120b:free"),
     messages: await convertToModelMessages(messages),
     system: SYSTEM_PROMPT,
     stopWhen: stepCountIs(10),
