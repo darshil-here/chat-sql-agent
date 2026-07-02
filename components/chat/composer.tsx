@@ -10,6 +10,7 @@ interface ComposerProps {
   disabled?: boolean;
   isLoading?: boolean;
   isInitializing?: boolean;
+  error?: string | null;
 }
 
 export function Composer({
@@ -17,6 +18,7 @@ export function Composer({
   disabled = false,
   isLoading = false,
   isInitializing = false,
+  error = null,
 }: ComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -51,6 +53,11 @@ export function Composer({
   return (
     <div className="flex justify-center p-4">
       <div className="w-full max-w-3xl">
+        {error && (
+          <div className="mb-2 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
+            {error}
+          </div>
+        )}
         <div className="flex items-end gap-2 bg-composer border border-border-subtle rounded-lg p-3 shadow-soft">
           <Textarea
             ref={textareaRef}

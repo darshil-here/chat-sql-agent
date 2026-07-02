@@ -76,10 +76,6 @@ function getStepStatusLabel(parts: Array<{ type: string }>, stepIndex: number) {
       break;
     }
 
-    if (nextType === "tool-schema") {
-      return "Loading schema...";
-    }
-
     if (nextType === "tool-db") {
       return "Generating SQL query...";
     }
@@ -137,9 +133,13 @@ function formatSqlQuery(rawQuery: string) {
 
 export default function Chat() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status, error } = useChat();
 
   const isLoading = status === "streaming" || status === "submitted";
+
+  const errorMessage = error
+    ? "The AI model is temporarily unavailable. Please retry in a few moments."
+    : null;
 
   const copySql = async (key: string, sql: string) => {
     await navigator.clipboard.writeText(sql);
@@ -254,29 +254,6 @@ export default function Chat() {
                           </div>
                         );
 
-                      case "tool-schema":
-                        return (
-                          <div key={`${message.id}-${i}`}>
-                            <ToolStatusCard
-                              title="Schema Tool"
-                              status={
-                                part.state === "output-available"
-                                  ? "success"
-                                  : part.state === "output-error" ||
-                                      part.state === "output-denied"
-                                    ? "error"
-                                    : "running"
-                              }
-                            >
-                              {part.state === "output-available" && (
-                                <div className="text-sm text-accent-positive">
-                                  Schema loaded
-                                </div>
-                              )}
-                            </ToolStatusCard>
-                          </div>
-                        );
-
                       case "step-start":
                         return (
                           <div
@@ -324,6 +301,7 @@ export default function Chat() {
         onSubmit={handleSubmit}
         disabled={isLoading}
         isLoading={isLoading}
+        error={errorMessage}
       />
     </div>
   );

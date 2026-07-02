@@ -8,8 +8,7 @@ import {
 } from "ai";
 import z from "zod";
 import { db } from "@/db/db";
-import { readFile, readdir } from "node:fs/promises";
-import path from "node:path";
+import { getRAGContext } from "@/lib/sql-rag";
 
 export const maxDuration = 120; // 2 minutes
 
@@ -17,43 +16,24 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
-let schemaCache: string | null = null;
-
-async function getLatestMigrationPath() {
-  const migrationsDir = path.join(process.cwd(), "db/migrations");
-  const files = await readdir(migrationsDir);
-
-  const migrationFiles = files
-    .filter((file) => file.endsWith(".sql"))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-  if (migrationFiles.length === 0) {
-    throw new Error("No migration .sql files found in db/migrations");
-  }
-
-  const latestMigrationFile = migrationFiles[migrationFiles.length - 1];
-  return path.join(migrationsDir, latestMigrationFile);
-}
-
-async function getSchemaSql() {
-  if (schemaCache) return schemaCache;
-
-  const migrationPath = await getLatestMigrationPath();
-  const rawSchema = await readFile(migrationPath, "utf8");
-
-  // Optional cleanup for readability in tool output
-  schemaCache = rawSchema
-    .split("--> statement-breakpoint")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join(";\n\n")
-    .concat(";");
-
-  return schemaCache;
-}
-
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
+
+  // Get the last user message to build RAG context
+  const lastUserMessage = messages
+    .filter((m) => m.role === "user")
+    .pop();
+  const userQuestion = lastUserMessage
+    ? lastUserMessage.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join(" ")
+    : "";
+
+  // Build RAG context from user question
+  const ragContext = userQuestion
+    ? await getRAGContext(userQuestion)
+    : "No question provided yet.";
 
   const SYSTEM_PROMPT = `
   You are an expert SQLite AI data analyst.
@@ -66,14 +46,14 @@ export async function POST(req: Request) {
   3. Executing the query
   4. Explaining the result
 
-  You have access to:
-  1. A schema tool
-  2. A database query tool
+  You have access to a database query tool.
+
+  RELEVANT TABLES AND SCHEMA:
+  ${ragContext}
 
   IMPORTANT RULES:
 
-  - ALWAYS check the schema before generating SQL
-  - ONLY use tables and columns that exist
+  - ONLY use tables and columns shown in the schema above
   - NEVER invent column names
   - ONLY generate SELECT queries
   - NEVER generate DELETE, UPDATE, INSERT, DROP, ALTER, or TRUNCATE queries
@@ -92,7 +72,7 @@ export async function POST(req: Request) {
   - Try correcting the SQL query
 
   Before generating SQL:
-  1. Inspect schema
+  1. Review the schema above
   2. Identify relevant tables
   3. Generate valid SQLite SQL
   4. Execute query
@@ -114,13 +94,6 @@ export async function POST(req: Request) {
     system: SYSTEM_PROMPT,
     stopWhen: stepCountIs(10),
     tools: {
-      schema: tool({
-        description: "Call this tool to get database schema information.",
-        inputSchema: z.object({}),
-        execute: async () => {
-          return await getSchemaSql();
-        },
-      }),
       db: tool({
         description: "Call this tool to query a database.",
         inputSchema: z.object({

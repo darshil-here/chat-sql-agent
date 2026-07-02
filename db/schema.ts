@@ -304,3 +304,19 @@ export const shippingAddressesTable = sqliteTable("shipping_addresses", {
   zip: text("zip"),
   is_default: integer("is_default").default(0),
 });
+
+// ============================================================
+// SQL RAG METADATA
+// ============================================================
+
+// Schema metadata for SQL RAG — stores documentation about every table
+// for full-text search retrieval. This is NOT part of the business data;
+// it's used by the RAG system to find relevant tables for user questions.
+export const schemaMetadataTable = sqliteTable("schema_metadata", {
+  table_name: text("table_name").primaryKey(),
+  description: text("description"),
+  columns: text("columns"),
+  column_types: text("column_types"),
+  relationships: text("relationships"),
+  example_queries: text("example_queries"),
+});
