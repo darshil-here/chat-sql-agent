@@ -1,9 +1,12 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { DefaultChatTransport } from "ai";
 
 import { TopBar } from "@/components/chat/top-bar";
 import { ChatContainer } from "@/components/chat/chat-container";
@@ -68,7 +71,21 @@ const SUGGESTED_PROMPTS = [
   "How many active customers placed completed orders?",
 ];
 
-function getStepStatusLabel(parts: Array<{ type: string }>, stepIndex: number) {
+function isLastToolDb(
+  parts: Array<{ type: string }>,
+  currentIndex: number,
+): boolean {
+  for (let j = parts.length - 1; j > currentIndex; j--) {
+    if (parts[j]?.type === "tool-db") return false;
+  }
+  return true;
+}
+
+function getStepStatusLabel(
+  parts: Array<{ type: string }>,
+  stepIndex: number,
+) {
+  // Find what comes after this step-start
   for (let j = stepIndex + 1; j < parts.length; j++) {
     const nextType = parts[j]?.type;
 
@@ -81,11 +98,22 @@ function getStepStatusLabel(parts: Array<{ type: string }>, stepIndex: number) {
     }
 
     if (nextType === "text") {
-      return "Querying database...";
+      // Check if there was a tool-db before this step
+      let hasToolDb = false;
+      for (let k = stepIndex - 1; k >= 0; k--) {
+        if (parts[k]?.type === "tool-db") {
+          hasToolDb = true;
+          break;
+        }
+        if (parts[k]?.type === "step-start") {
+          break;
+        }
+      }
+      return hasToolDb ? "Generating answer..." : "Generating answer...";
     }
   }
 
-  return "Generating SQL...";
+  return "Thinking...";
 }
 
 function formatSqlQuery(rawQuery: string) {
@@ -133,7 +161,22 @@ function formatSqlQuery(rawQuery: string) {
 
 export default function Chat() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const { messages, sendMessage, status, error } = useChat();
+  const [dryRun, setDryRun] = useState(false);
+  const dryRunRef = useRef(false);
+
+  useEffect(() => {
+    dryRunRef.current = dryRun;
+  }, [dryRun]);
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        body: () => ({ dryRun: dryRunRef.current }),
+      }),
+    [],
+  );
+
+  const { messages, sendMessage, status, error } = useChat({ transport });
 
   const isLoading = status === "streaming" || status === "submitted";
 
@@ -153,10 +196,93 @@ export default function Chat() {
     sendMessage({ text });
   };
 
+  const toggleDryRun = () => setDryRun((prev) => !prev);
+
+  const markdownComponents = {
+    code({
+      className,
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLElement> & { children?: ReactNode }) {
+      const match = /language-(\w+)/.exec(className || "");
+      const codeString = String(children).replace(/\n$/, "");
+      const codeKey = `md-${codeString.slice(0, 50)}`;
+
+      if (match) {
+        return (
+          <div className="my-3 rounded-lg border border-border-subtle overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-elevated border-b border-border-subtle">
+              <span className="text-[11px] uppercase tracking-wide text-text-muted font-mono">
+                {match[1]}
+              </span>
+              <button
+                type="button"
+                onClick={() => copySql(codeKey, codeString)}
+                className="text-[11px] px-2 py-1 rounded bg-background hover:bg-background/80 text-text-secondary"
+              >
+                {copiedKey === codeKey ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <SyntaxHighlighter
+              language={match[1]}
+              style={oneDark}
+              customStyle={{
+                margin: 0,
+                borderRadius: 0,
+                fontSize: "13px",
+                lineHeight: "1.5",
+                padding: "12px 14px",
+                overflowX: "auto",
+                background: "#0d0b0c",
+              }}
+              codeTagProps={{
+                style: {
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                },
+              }}
+            >
+              {codeString}
+            </SyntaxHighlighter>
+          </div>
+        );
+      }
+
+      return (
+        <code
+          className="px-1.5 py-0.5 rounded bg-elevated text-accent-danger font-mono text-[13px]"
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    },
+    table({ children }: { children?: ReactNode }) {
+      return (
+        <div className="my-3 overflow-x-auto rounded-lg border border-border-subtle">
+          <table className="w-full text-sm">{children}</table>
+        </div>
+      );
+    },
+    th({ children }: { children?: ReactNode }) {
+      return (
+        <th className="px-3 py-2 text-left text-xs font-medium text-text-muted uppercase tracking-wider bg-elevated border-b border-border-subtle">
+          {children}
+        </th>
+      );
+    },
+    td({ children }: { children?: ReactNode }) {
+      return (
+        <td className="px-3 py-2 border-b border-border-subtle text-text-primary">
+          {children}
+        </td>
+      );
+    },
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <TopBar />
-      {/*<StatusStrip isLoading={isLoading} />*/}
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {messages.length === 0 ? (
@@ -169,7 +295,19 @@ export default function Chat() {
                   {message.parts.map((part, i) => {
                     switch (part.type) {
                       case "text":
-                        return (
+                        return message.role === "assistant" ? (
+                          <div
+                            key={`${message.id}-${i}`}
+                            className="prose prose-invert prose-sm max-w-none"
+                          >
+                            <Markdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
+                            >
+                              {part.text}
+                            </Markdown>
+                          </div>
+                        ) : (
                           <div
                             key={`${message.id}-${i}`}
                             className="whitespace-pre-wrap"
@@ -179,10 +317,18 @@ export default function Chat() {
                         );
 
                       case "tool-db":
+                        if (
+                          !isLastToolDb(
+                            message.parts as Array<{ type: string }>,
+                            i,
+                          )
+                        ) {
+                          return null;
+                        }
                         return (
                           <div key={`${message.id}-${i}`}>
                             <ToolStatusCard
-                              title="Database Query"
+                              title="Database Query Used"
                               status={
                                 part.state === "output-available"
                                   ? "success"
@@ -243,7 +389,7 @@ export default function Chat() {
                               )}
                               {part.state === "output-available" &&
                                 (part.output as unknown as AIOutput) && (
-                                  <div className="text-sm text-accent-positive">
+                                  <div className="text-xs text-text-secondary">
                                     Returned{" "}
                                     {(part.output as unknown as AIOutput).rows
                                       ?.length || 0}{" "}
@@ -302,6 +448,8 @@ export default function Chat() {
         disabled={isLoading}
         isLoading={isLoading}
         error={errorMessage}
+        dryRun={dryRun}
+        onToggleDryRun={toggleDryRun}
       />
     </div>
   );

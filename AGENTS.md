@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Project: QueryMind — NL to SQL Chat App
 
 ### Tech Stack
-- **LLM**: OpenAI gpt-oss-120b via OpenRouter (`@openrouter/ai-sdk-provider`)
+- **LLM**: NVIDIA Nemotron 3 Nano 30B via OpenRouter (`@openrouter/ai-sdk-provider`)
 - **DB**: Turso (SQLite) + Drizzle ORM
 - **SQL RAG**: FTS5 (vectorless) — no embeddings, no vector store
 - **Data**: faker-js for all seeding (~8,335 rows across 24 tables)
@@ -24,18 +24,19 @@ npx tsx scripts/test-rag.ts "YOUR QUESTION"  # Test RAG retrieval
 ```
 
 ### Current Status (Step 3.6 Complete)
-- [x] Gemini → OpenAI gpt-oss-120b via OpenRouter
+- [x] Gemini → NVIDIA Nemotron 3 Nano 30B via OpenRouter
 - [x] 24 tables with faker seed data (~8,335 rows)
 - [x] FTS5 schema metadata table + triggers
 - [x] SQL RAG: `getRAGContext()` returns relevant schemas + sample rows
 - [x] FTS5 tuned: removed `columns`/`relationships` from index, AND-then-OR matching, stop words
 - [x] RAG integrated into `app/api/chat/route.ts` — replaced old `schema` tool with `getRAGContext()` injection
 - [x] Setup script: `scripts/setup-sql-rag.ts` — runs migrations, seed, metadata, and FTS5 rebuild in one command
+- [x] System prompt upgraded: 6-section structure, general disambiguation, bounded retries, hardened SQL guard
+- [x] Dry Run mode: flask icon toggle in composer, only shows SQL without executing
 
 ### Next Steps
-1. **Step 7**: Add "Show SQL" dry-run button to chat UI
-2. **Step 8**: Add "?" button with project overview for recruiters
-3. **Step 9**: Improve landing page
+1. **Step 8**: Add "?" button with project overview for recruiters
+2. **Step 9**: Improve landing page
 
 ### Key Files
 - `lib/sql-rag.ts` — RAG logic (FTS5 search, sample rows, `getRAGContext()`)

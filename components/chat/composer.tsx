@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, FlaskConical } from "lucide-react";
 
 interface ComposerProps {
   onSubmit: (message: string) => void;
@@ -11,6 +11,8 @@ interface ComposerProps {
   isLoading?: boolean;
   isInitializing?: boolean;
   error?: string | null;
+  dryRun?: boolean;
+  onToggleDryRun?: () => void;
 }
 
 export function Composer({
@@ -19,6 +21,8 @@ export function Composer({
   isLoading = false,
   isInitializing = false,
   error = null,
+  dryRun = false,
+  onToggleDryRun,
 }: ComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,6 +62,11 @@ export function Composer({
             {error}
           </div>
         )}
+        {dryRun && (
+          <div className="mb-2 px-3 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs text-center">
+            Dry Run mode active — only SQL will be shown, no execution
+          </div>
+        )}
         <div className="flex items-end gap-2 bg-composer border border-border-subtle rounded-lg p-3 shadow-soft">
           <Textarea
             ref={textareaRef}
@@ -67,6 +76,19 @@ export function Composer({
             className="flex-1 min-h-[40px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
             onKeyDown={handleKeyDown}
           />
+          {onToggleDryRun && (
+            <Button
+              type="button"
+              size="icon"
+              variant={dryRun ? "default" : "outline"}
+              onClick={onToggleDryRun}
+              disabled={isInitializing}
+              className={`shrink-0 rounded-full cursor-pointer ${dryRun ? "bg-blue-500 hover:bg-blue-600 text-white" : ""}`}
+              title="Toggle Dry Run mode"
+            >
+              <FlaskConical className="size-4" />
+            </Button>
+          )}
           <Button
             type="button"
             size="icon"

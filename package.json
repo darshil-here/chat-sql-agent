@@ -20,6 +20,7 @@
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/typography": "^0.5.20",
     "@types/react-syntax-highlighter": "^15.5.13",
     "ai": "^6.0.174",
     "class-variance-authority": "^0.7.1",
@@ -30,7 +31,9 @@
     "next": "^16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
