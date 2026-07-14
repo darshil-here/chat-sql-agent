@@ -24,6 +24,14 @@
   --accent-danger: #ef4444;
 
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.10);
+
+  /* Brand accent that stays readable on a light surface.
+     Use for icons/hovers inside the chat UI (dark in light mode, lime in dark). */
+  --accent-brand: #4d7c0f;
+
+  /* Light mode: dark text → switches to white on a dark green highlight. */
+  --selection-bg: #4d7c0f;
+  --selection-text: #ffffff;
 }
 
 .dark {
@@ -45,6 +53,11 @@
   --accent-danger: #ff6b6b;
 
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  --accent-brand: #bbf746;
+
+  --selection-bg: #bbf746;
+  --selection-text: #171717;
 }
 
 @theme inline {
@@ -62,6 +75,7 @@
   --color-accent-focus: var(--accent-focus);
   --color-accent-warning: var(--accent-warning);
   --color-accent-danger: var(--accent-danger);
+  --color-accent-brand: var(--accent-brand);
   --radius: 10px;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -71,6 +85,40 @@ body {
   background: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+/* ── Text selection ──
+   Light mode: white text on a dark green highlight (mirrors dark mode's
+   dark text on a lime highlight). The !important beats Tailwind utility
+   color classes so muted/secondary text stays readable when selected. */
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-text) !important;
+}
+
+::-moz-selection {
+  background: var(--selection-bg);
+  color: var(--selection-text) !important;
+}
+
+::placeholder {
+  color: var(--text-muted);
+}
+
+input::selection,
+textarea::selection,
+button::selection,
+[role="button"]::selection {
+  background: var(--selection-bg);
+  color: var(--selection-text) !important;
+}
+
+input::-moz-selection,
+textarea::-moz-selection,
+button::-moz-selection,
+[role="button"]::-moz-selection {
+  background: var(--selection-bg);
+  color: var(--selection-text) !important;
 }
 
 /* ── Landing Page Design Tokens ── */

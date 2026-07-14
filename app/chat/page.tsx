@@ -1,18 +1,18 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { DefaultChatTransport } from "ai";
 
 import { TopBar } from "@/components/chat/top-bar";
 import { ChatContainer } from "@/components/chat/chat-container";
 import { Composer } from "@/components/chat/composer";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { ToolStatusCard } from "@/components/chat/tool-status-card";
+import { DatabaseGuide } from "@/components/chat/database-guide";
 
 type AIInput = {
   query: string;
@@ -162,21 +162,8 @@ function formatSqlQuery(rawQuery: string) {
 export default function Chat() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(false);
-  const dryRunRef = useRef(false);
 
-  useEffect(() => {
-    dryRunRef.current = dryRun;
-  }, [dryRun]);
-
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        body: () => ({ dryRun: dryRunRef.current }),
-      }),
-    [],
-  );
-
-  const { messages, sendMessage, status, error } = useChat({ transport });
+  const { messages, sendMessage, status, error } = useChat();
 
   const isLoading = status === "streaming" || status === "submitted";
 
@@ -193,7 +180,7 @@ export default function Chat() {
   };
 
   const handleSubmit = (text: string) => {
-    sendMessage({ text });
+    sendMessage({ text }, { body: { dryRun } });
   };
 
   const toggleDryRun = () => setDryRun((prev) => !prev);
@@ -451,6 +438,8 @@ export default function Chat() {
         dryRun={dryRun}
         onToggleDryRun={toggleDryRun}
       />
+
+      <DatabaseGuide />
     </div>
   );
 }

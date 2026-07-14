@@ -5,7 +5,7 @@ import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 
 export function TopBar() {
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, mounted } = useTheme()
 
   return (
     <div className="flex items-center justify-between h-10 px-4 bg-panel border-b border-border-subtle">
@@ -22,7 +22,7 @@ export function TopBar() {
           className="size-8 cursor-pointer"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
-          {theme === "dark" ? (
+          {mounted && theme === "dark" ? (
             <Sun className="size-4 text-text-muted" />
           ) : (
             <Moon className="size-4 text-text-muted" />
