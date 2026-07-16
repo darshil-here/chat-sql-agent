@@ -38,20 +38,56 @@ What sets it apart is a **SQL-focused RAG pipeline**: before the model writes an
 
 ```mermaid
 flowchart LR
-    U[User] --> UI[Chat UI<br/>app/chat]
-    UI --> API["Chat API Route<br/>app/api/chat/route.ts"]
-    API --> RAG["SQL RAG<br/>lib/sql-rag.ts"]
-    RAG --> FTS[("FTS5 Index<br/>schema_metadata_fts")]
-    RAG --> SM[("Schema Metadata<br/>schema_metadata")]
-    RAG --> DB1[("Turso DB<br/>sample rows")]
-    RAG -->|retrieved schema + sample rows| API
-    API -->|schema context in system prompt| LLM["LLM<br/>NVIDIA Nemotron 3 Nano 30B<br/>via OpenRouter"]
-    LLM -->|generated SQL| API
-    API --> Guard["Read-only guard<br/>assertSafeReadOnlyQuery"]
-    Guard --> DB1
+    subgraph Client["🖥️ Client"]
+        U["User"]
+        UI["Chat UI<br/><small>app/chat</small>"]
+    end
+
+    subgraph App["⚙️ Application Layer"]
+        API["Chat API Route<br/><small>app/api/chat/route.ts</small>"]
+        Guard["Read-only Guard<br/><small>assertSafeReadOnlyQuery</small>"]
+    end
+
+    subgraph RAGLayer["🔍 SQL RAG"]
+        RAG["sql-rag.ts<br/><small>getRAGContext</small>"]
+        FTS[("FTS5 Index<br/>schema_metadata_fts")]
+        SM[("Schema Metadata<br/>schema_metadata")]
+    end
+
+    subgraph DataLayer["🗄️ Data"]
+        DB1[("Turso DB<br/><small>libSQL / SQLite</small>")]
+    end
+
+    subgraph External["☁️ External"]
+        LLM["LLM<br/>Nemotron 3 Nano 30B<br/><small>via OpenRouter</small>"]
+    end
+
+    U --> UI --> API
+    API --> RAG
+    RAG --> FTS
+    RAG --> SM
+    RAG -.->|sample rows| DB1
+
+    RAG ==>|"grounded schema +<br/>sample rows"| API
+    API ==>|"system prompt<br/>(schema context)"| LLM
+    LLM ==>|"generated SQL"| API
+
+    API --> Guard --> DB1
     DB1 -->|rows| API
     API -->|streamed response| UI
     UI --> U
+
+    classDef client fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef app fill:#fef3c7,stroke:#b45309,color:#78350f
+    classDef rag fill:#dcfce7,stroke:#15803d,color:#14532d
+    classDef data fill:#f3e8ff,stroke:#7e22ce,color:#581c87
+    classDef ext fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d
+
+    class U,UI client
+    class API,Guard app
+    class RAG,FTS,SM rag
+    class DB1 data
+    class LLM ext
 ```
 
 The arrow from **SQL RAG → Chat API → LLM** is the key edge: retrieved schema and sample rows are injected into the system prompt *before* the model generates SQL, so generation is grounded in the real data model rather than the model's prior assumptions.
@@ -73,126 +109,9 @@ The arrow from **SQL RAG → Chat API → LLM** is the key edge: retrieved schem
 
 ---
 
-## Setup and local development
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- A [Turso](https://turso.tech) database (free tier works) and its auth token
-- An [OpenRouter](https://openrouter.ai) API key with access to the Nemotron model
-
-### 1. Install dependencies
-
-```bash
-npm install
-```
-
-### 2. Configure environment
-
-Copy the env example and fill in your credentials:
-
-```bash
-cp .env.example .env.local
-```
-
-`.env.local` must contain:
-
-```bash
-TURSO_DATABASE_URL=libsql://your-db.turso.io
-TURSO_AUTH_TOKEN=your-turso-auth-token
-OPENROUTER_API_KEY=your-openrouter-api-key
-```
-
-### 3. Set up the database
-
-This single command applies migrations, seeds ~8,335 faker rows, loads schema metadata, and rebuilds the FTS5 index:
-
-```bash
-npm run db:setup
-```
-
-You can also run each step individually:
-
-```bash
-npm run db:migrate      # apply schema migrations
-npm run db:seed         # seed faker data only
-npx tsx scripts/seed-schema-metadata.ts   # seed schema metadata only
-```
-
-### 4. Start the dev server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
----
-
-## Using the app
-
-1. Open **[http://localhost:3000/chat](http://localhost:3000/chat)**.
-2. Click the **Database guide** button (bottom-right) to see every table and example questions.
-3. Type a question, for example:
-
-   > What are the top 3 best-selling products by quantity sold?
-
-4. The assistant:
-   - retrieves the relevant tables (`products`, `order_items`) via SQL RAG,
-   - generates a `SELECT ... GROUP BY ... ORDER BY ... LIMIT 3` query,
-   - executes it against the seeded database, and
-   - answers with a short summary plus the results.
-
-Want to see the SQL without running it? Toggle the **flask icon (Dry Run)** in the composer — the assistant returns only the SQL for your review.
-
-### Useful npm scripts
-
-```bash
-npm run dev          # start dev server
-npm run db:setup     # migrations + seed + metadata + FTS5 rebuild
-npm run db:studio    # open Drizzle Studio to browse data
-npm run lint         # eslint
-npx tsx scripts/test-rag.ts "your question"  # inspect RAG retrieval
-```
-
----
-
-## Project structure
-
-```
-app/
-  api/chat/route.ts    # chat API: RAG → system prompt → LLM → db tool → response
-  chat/page.tsx        # chat UI: messages, SQL cards, dry-run toggle
-  page.tsx             # landing page
-components/
-  chat/                # composer, message bubbles, tool cards, database guide
-  ui/                  # shadcn-style primitives (button, textarea, scroll-area)
-lib/
-  sql-rag.ts           # getRelevantSchemas (FTS5) + getSampleRows + getRAGContext
-db/
-  schema.ts            # 24 Drizzle table definitions + schemaMetadataTable
-  db.ts                # Turso/libSQL client
-  db.seed.ts           # faker seeding
-scripts/
-  setup-sql-rag.ts     # one-shot setup (migrate + seed + metadata + FTS5)
-  seed-schema-metadata.ts
-  test-rag.ts          # manual RAG retrieval testing
-```
-
----
-
 ## Safety notes and limitations
 
 - **Read-only enforcement is defense-in-depth.** The model's system prompt forbids non-`SELECT` statements, and `assertSafeReadOnlyQuery` re-validates on the server (single statement, `SELECT`/`WITH` only, blocks DDL/DML keywords). For production, also run the DB connection as a least-privilege / read-only user at the database layer.
 - **Generated SQL should be reviewed before running against production data.** Dry Run mode exists for exactly this.
 - **RAG is FTS5-based, not embedding-based.** This keeps the stack lean (no vector store, no embedding model) and works well for schema-keyword matching, but won't catch semantic synonyms the way an embedding store could. The `cleanQuestion` + AND-then-OR fallback handles most phrasing variations.
 - **The database in this repo is seeded demo data**, not a real production dataset.
-
----
-
-## Roadmap
-
-- Database guide trigger button on the landing page
-- Improved landing-page onboarding for first-time visitors
-- Semantic retrieval tier (optional embeddings) for harder paraphrases
-- Per-query execution cost / latency telemetry
