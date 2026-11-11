@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useSyncExternalStore,
 } from "react"
@@ -13,13 +14,11 @@ type Theme = "dark" | "light"
 interface ThemeContextType {
   theme: Theme
   toggleTheme: () => void
-  mounted: boolean
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: "dark",
   toggleTheme: () => {},
-  mounted: false,
 })
 
 function subscribe(callback: () => void) {
@@ -27,18 +26,9 @@ function subscribe(callback: () => void) {
   return () => window.removeEventListener("storage", callback)
 }
 
-// Stable server snapshot: always dark until the client takes over.
-let clientTheme: Theme = "dark"
-
-function getClientTheme(): Theme {
-  const saved = localStorage.getItem("theme")
-  if (saved === "light" || saved === "dark") return saved
-  return "dark"
-}
-
 function getSnapshot(): Theme {
-  clientTheme = getClientTheme()
-  return clientTheme
+  const saved = localStorage.getItem("theme")
+  return saved === "light" || saved === "dark" ? saved : "dark"
 }
 
 function getServerSnapshot(): Theme {
@@ -52,15 +42,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     getServerSnapshot,
   )
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark")
+  }, [theme])
+
   const toggleTheme = useCallback(() => {
     const next = theme === "dark" ? "light" : "dark"
     localStorage.setItem("theme", next)
-    document.documentElement.classList.toggle("dark", next === "dark")
     window.dispatchEvent(new StorageEvent("storage"))
   }, [theme])
 
   const value = useMemo(
-    () => ({ theme, toggleTheme, mounted: true }),
+    () => ({ theme, toggleTheme }),
     [theme, toggleTheme],
   )
 

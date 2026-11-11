@@ -18,6 +18,7 @@ const TABLE_GROUPS = [
     title: "Customers",
     tables: [
       { name: "customers", cols: "name, email, country, status, total_spent" },
+      { name: "subscriptions", cols: "plan, monthly_price, status, renewal_date" },
       { name: "shipping_addresses", cols: "label, city, state, zip" },
       { name: "loyalty_points", cols: "points, reason, earned_at" },
     ],
@@ -162,7 +163,7 @@ export function DatabaseGuide() {
                 <code className="font-mono">order_id</code>,{" "}
                 <code className="font-mono">product_id</code> and{" "}
                 <code className="font-mono">region_id</code>. The AI handles the
-                joins — just describe what you want.
+                joins. Just describe what you want.
               </p>
             </div>
 

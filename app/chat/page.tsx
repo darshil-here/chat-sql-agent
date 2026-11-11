@@ -7,8 +7,9 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { Database } from "lucide-react";
+
 import { TopBar } from "@/components/chat/top-bar";
-import { ChatContainer } from "@/components/chat/chat-container";
 import { Composer } from "@/components/chat/composer";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { ToolStatusCard } from "@/components/chat/tool-status-card";
@@ -19,7 +20,7 @@ type AIInput = {
 };
 
 type AIOutput = {
-  rows: string[];
+  rows: unknown[][];
 };
 
 const SQL_KEYWORDS = [
@@ -98,18 +99,7 @@ function getStepStatusLabel(
     }
 
     if (nextType === "text") {
-      // Check if there was a tool-db before this step
-      let hasToolDb = false;
-      for (let k = stepIndex - 1; k >= 0; k--) {
-        if (parts[k]?.type === "tool-db") {
-          hasToolDb = true;
-          break;
-        }
-        if (parts[k]?.type === "step-start") {
-          break;
-        }
-      }
-      return hasToolDb ? "Generating answer..." : "Generating answer...";
+      return "Generating answer...";
     }
   }
 
@@ -273,7 +263,21 @@ export default function Chat() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {messages.length === 0 ? (
-          <ChatContainer messages={[]} />
+          <div className="flex-1 flex items-center justify-center p-12">
+            <div className="text-center max-w-lg">
+              <div className="size-16 mx-auto mb-4 rounded-full bg-panel flex items-center justify-center">
+                <Database className="size-7 text-accent-brand" />
+              </div>
+              <h2 className="text-xl font-medium text-text-primary mb-2">
+                Start a conversation
+              </h2>
+              <p className="text-base text-text-muted">
+                Ask questions about your database. Try &ldquo;Show me all
+                active customers&rdquo; or &ldquo;What&apos;s the total revenue
+                from completed orders?&rdquo;
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4 space-y-4">

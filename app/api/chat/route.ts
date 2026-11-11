@@ -190,7 +190,7 @@ export async function POST(req: Request) {
   // In dry-run mode: no db tool, only generate SQL
   if (dryRun) {
     const result = streamText({
-      model: openrouter("nvidia/nemotron-3-nano-30b-a3b:free"),
+      model: openrouter("nvidia/nemotron-3.5-super-vl:free"),
       messages: await convertToModelMessages(messages),
       system: DRY_RUN_PROMPT,
       stopWhen: stepCountIs(1),
@@ -201,7 +201,7 @@ export async function POST(req: Request) {
 
   // Normal mode: with db tool
   const result = streamText({
-    model: openrouter("nvidia/nemotron-3-nano-30b-a3b:free"),
+    model: openrouter("nvidia/nemotron-3.5-super-vl:free"),
     messages: await convertToModelMessages(messages),
     system: SYSTEM_PROMPT,
     stopWhen: stepCountIs(10),

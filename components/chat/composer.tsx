@@ -64,7 +64,7 @@ export function Composer({
         )}
         {dryRun && (
           <div className="mb-2 px-3 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs text-center">
-            Dry Run mode active — only SQL will be shown, no execution
+            Dry Run mode active. Only SQL will be shown, nothing runs.
           </div>
         )}
         <div className="flex items-end gap-2 bg-composer border border-border-subtle rounded-lg p-3 shadow-soft">

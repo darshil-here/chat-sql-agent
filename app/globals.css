@@ -4,8 +4,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 10px;
-
   --bg-app: #ffffff;
   --bg-panel: #f5f5f5;
   --bg-elevated: #e5e5e5;
@@ -23,7 +21,7 @@
   --accent-warning: #eab308;
   --accent-danger: #ef4444;
 
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.10);
+  --shadow-soft-value: 0 10px 30px rgba(0, 0, 0, 0.10);
 
   /* Brand accent that stays readable on a light surface.
      Use for icons/hovers inside the chat UI (dark in light mode, lime in dark). */
@@ -52,7 +50,7 @@
   --accent-warning: #f4bf4f;
   --accent-danger: #ff6b6b;
 
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-soft-value: 0 10px 30px rgba(0, 0, 0, 0.35);
 
   --accent-brand: #bbf746;
 
@@ -76,7 +74,7 @@
   --color-accent-warning: var(--accent-warning);
   --color-accent-danger: var(--accent-danger);
   --color-accent-brand: var(--accent-brand);
-  --radius: 10px;
+  --shadow-soft: var(--shadow-soft-value);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -131,15 +129,8 @@ button::-moz-selection,
   --lp-text-muted: #737373;
   --lp-primary: #bbf746;
   --lp-primary-hover: #a3e635;
-  --lp-primary-active: #84cc16;
-  --lp-primary-disabled: #d9f99d;
-  --lp-surface-dark: #171717;
   --lp-border-dark: #333333;
-  --lp-focus-ring: #bbf746;
-  --lp-badge-bg: #bbf746;
   --lp-badge-text: #171717;
-  --lp-easing-cta: cubic-bezier(0.25, 1, 0.5, 1);
-  --lp-easing-strong: cubic-bezier(0.22, 1, 0.36, 1);
   --lp-shadow-card: rgba(0, 0, 0, 0.05) 0px 1px 0px 0px,
     rgba(0, 0, 0, 0.1) 0px 4px 4px 0px,
     rgba(0, 0, 0, 0.15) 0px 10px 10px 0px,
