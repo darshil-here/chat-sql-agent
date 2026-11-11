@@ -9,8 +9,10 @@ import {
 import z from "zod";
 import { db } from "@/db/db";
 import { getRAGContext } from "@/lib/sql-rag";
+import { assertSafeReadOnlyQuery } from "@/lib/sql-guard";
 
-export const maxDuration = 120; // 2 minutes
+export const maxDuration = 300; // 5 minutes; the free model can be slow
+const MAX_TOOL_ROWS = 200;
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY!,
@@ -20,18 +22,21 @@ export async function POST(req: Request) {
   const { messages, dryRun }: { messages: UIMessage[]; dryRun?: boolean } =
     await req.json();
 
-  // Get the last user message to build RAG context
-  const lastUserMessage = messages.filter((m) => m.role === "user").pop();
-  const userQuestion = lastUserMessage
-    ? lastUserMessage.parts
+  // Use the last few user turns so follow-up questions keep their context.
+  const recentQuestions = messages
+    .filter((m) => m.role === "user")
+    .slice(-3)
+    .map((m) =>
+      m.parts
         .filter((p): p is { type: "text"; text: string } => p.type === "text")
         .map((p) => p.text)
-        .join(" ")
-    : "";
+        .join(" "),
+    )
+    .filter(Boolean);
 
-  // Build RAG context from user question
-  const ragContext = userQuestion
-    ? await getRAGContext(userQuestion)
+  const retrievalQuery = recentQuestions.join(" ");
+  const ragContext = retrievalQuery
+    ? await getRAGContext(retrievalQuery)
     : "No question provided yet.";
 
   const DRY_RUN_PROMPT = `
@@ -40,7 +45,7 @@ export async function POST(req: Request) {
   Your ONLY job is to generate the SQL query that would answer the user's
   question. Do NOT execute any queries. Do NOT call any tools.
 
-  RELEVANT TABLES AND SCHEMA:
+  FULL DATABASE SCHEMA:
   ${ragContext}
 
   RULES:
@@ -68,9 +73,11 @@ export async function POST(req: Request) {
   1. GROUNDING — WORK ONLY FROM THE SCHEMA PROVIDED
   ──────────────────────────────────────
 
-  RELEVANT TABLES AND SCHEMA:
+  FULL DATABASE SCHEMA:
   ${ragContext}
 
+  - The schema above covers every table in the database. The sample rows at
+    the end come from the tables retrieval thinks are most relevant.
   - Only reference tables and columns that appear above. Never invent a table,
     column, or relationship, even if the name seems plausible or "standard."
   - If the schema above does not contain what the question needs, do not
@@ -93,6 +100,8 @@ export async function POST(req: Request) {
     regardless of how the request is phrased or who is asking.
   - Write a single statement per query call. Do not chain multiple
     statements with semicolons.
+  - The tool returns at most 200 rows. If a result is truncated, narrow the
+    query or aggregate instead of asking for every row.
   - Use joins whenever the question requires combining data across tables,
     and prefer the most specific, explicit join path the schema supports
     over the shortest one.
@@ -207,14 +216,22 @@ export async function POST(req: Request) {
     stopWhen: stepCountIs(10),
     tools: {
       db: tool({
-        description: "Call this tool to query a database.",
+        description:
+          "Run a read-only SQLite query. Results are capped at 200 rows.",
         inputSchema: z.object({
-          query: z.string().describe("The SQL query to be ran."),
+          query: z.string().describe("The SQL query to run."),
         }),
         execute: async ({ query }) => {
-          console.log("Query", query);
           assertSafeReadOnlyQuery(query);
-          return await db.run(query);
+          const result = await db.run(query);
+          const rows = result.rows.slice(0, MAX_TOOL_ROWS);
+
+          return {
+            columns: result.columns,
+            rows,
+            rowCount: result.rows.length,
+            truncated: result.rows.length > MAX_TOOL_ROWS,
+          };
         },
       }),
     },
@@ -223,55 +240,3 @@ export async function POST(req: Request) {
   return result.toUIMessageStreamResponse();
 }
 
-/**
- * Defense-in-depth guard for the db tool. This is NOT a substitute for
- * running the app's DB connection as a read-only / least-privilege user —
- * do that at the database layer too. This just catches obviously unsafe
- * queries before they're sent, using word-boundary matching so it doesn't
- * false-positive on things like a column named `updated_at`.
- */
-function assertSafeReadOnlyQuery(query: string) {
-  const statements = query
-    .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-
-  if (statements.length > 1) {
-    throw new Error(
-      "Only a single SELECT statement is allowed per query call."
-    );
-  }
-
-  const trimmed = query.trim();
-
-  if (!/^SELECT\b|^WITH\b/i.test(trimmed)) {
-    throw new Error("Only SELECT (or SELECT-only CTE) statements are allowed.");
-  }
-
-  const forbiddenKeywords = [
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "DROP",
-    "ALTER",
-    "TRUNCATE",
-    "CREATE",
-    "REPLACE",
-    "ATTACH",
-    "DETACH",
-    "PRAGMA",
-    "VACUUM",
-    "REINDEX",
-    "GRANT",
-    "REVOKE",
-    "EXEC",
-    "EXECUTE",
-  ];
-
-  for (const word of forbiddenKeywords) {
-    const wordBoundaryPattern = new RegExp(`\\b${word}\\b`, "i");
-    if (wordBoundaryPattern.test(trimmed)) {
-      throw new Error(`Forbidden SQL operation: ${word}`);
-    }
-  }
-}

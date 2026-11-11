@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Markdown from "react-markdown";
@@ -21,49 +21,9 @@ type AIInput = {
 
 type AIOutput = {
   rows: unknown[][];
+  rowCount: number;
+  truncated: boolean;
 };
-
-const SQL_KEYWORDS = [
-  "SELECT",
-  "FROM",
-  "WHERE",
-  "GROUP BY",
-  "ORDER BY",
-  "HAVING",
-  "LIMIT",
-  "OFFSET",
-  "INNER JOIN",
-  "LEFT JOIN",
-  "RIGHT JOIN",
-  "FULL JOIN",
-  "CROSS JOIN",
-  "JOIN",
-  "ON",
-  "AS",
-  "AND",
-  "OR",
-  "IN",
-  "NOT",
-  "IS",
-  "NULL",
-  "LIKE",
-  "BETWEEN",
-  "DISTINCT",
-  "CASE",
-  "WHEN",
-  "THEN",
-  "ELSE",
-  "END",
-  "UNION",
-  "UNION ALL",
-  "ASC",
-  "DESC",
-  "COUNT",
-  "SUM",
-  "AVG",
-  "MIN",
-  "MAX",
-];
 
 const SUGGESTED_PROMPTS = [
   "What is the total revenue from completed orders?",
@@ -106,56 +66,27 @@ function getStepStatusLabel(
   return "Thinking...";
 }
 
-function formatSqlQuery(rawQuery: string) {
-  let sql = rawQuery.trim().replace(/\s+/g, " ");
-
-  for (const keyword of [...SQL_KEYWORDS].sort((a, b) => b.length - a.length)) {
-    const pattern = new RegExp(
-      `\\b${keyword.replace(/ /g, "\\\\s+")}\\b`,
-      "gi",
-    );
-    sql = sql.replace(pattern, keyword);
-  }
-
-  const clauses = [
-    "FROM",
-    "WHERE",
-    "GROUP BY",
-    "HAVING",
-    "ORDER BY",
-    "LIMIT",
-    "OFFSET",
-    "INNER JOIN",
-    "LEFT JOIN",
-    "RIGHT JOIN",
-    "FULL JOIN",
-    "CROSS JOIN",
-    "JOIN",
-    "ON",
-    "UNION ALL",
-    "UNION",
-  ];
-
-  for (const clause of clauses) {
-    const pattern = new RegExp(`\\s+${clause.replace(/ /g, "\\\\s+")}\\b`, "g");
-    sql = sql.replace(pattern, `\n${clause}`);
-  }
-
-  if (sql.startsWith("SELECT ")) {
-    sql = sql.replace(/^SELECT\s+/g, "SELECT\n  ");
-    sql = sql.replace(/,\s*/g, ",\n  ");
-  }
-
-  return sql.replace(/\n{3,}/g, "\n\n").trim();
-}
-
 export default function Chat() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(false);
 
   const { messages, sendMessage, status, error } = useChat();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const isLoading = status === "streaming" || status === "submitted";
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const nearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      160;
+
+    if (nearBottom) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages]);
 
   const errorMessage = error
     ? "The AI model is temporarily unavailable. Please retry in a few moments."
@@ -279,7 +210,7 @@ export default function Chat() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4 space-y-4">
               {messages.map((message) => (
                 <MessageBubble key={message.id} role={message.role}>
@@ -307,7 +238,7 @@ export default function Chat() {
                           </div>
                         );
 
-                      case "tool-db":
+                      case "tool-db": {
                         if (
                           !isLastToolDb(
                             message.parts as Array<{ type: string }>,
@@ -316,6 +247,14 @@ export default function Chat() {
                         ) {
                           return null;
                         }
+
+                        const query = (part.input as unknown as AIInput)
+                          ?.query;
+                        const output =
+                          part.state === "output-available"
+                            ? (part.output as unknown as AIOutput)
+                            : null;
+
                         return (
                           <div key={`${message.id}-${i}`}>
                             <ToolStatusCard
@@ -329,7 +268,7 @@ export default function Chat() {
                                     : "running"
                               }
                             >
-                              {(part.input as unknown as AIInput)?.query && (
+                              {query && (
                                 <div className="mb-2 rounded bg-background border border-border-subtle overflow-hidden">
                                   <div className="flex items-center justify-between px-2 py-1.5 border-b border-border-subtle">
                                     <span className="text-[11px] uppercase tracking-wide text-text-muted">
@@ -337,16 +276,9 @@ export default function Chat() {
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        const formatted = formatSqlQuery(
-                                          (part.input as unknown as AIInput)
-                                            .query,
-                                        );
-                                        copySql(
-                                          `${message.id}-${i}`,
-                                          formatted,
-                                        );
-                                      }}
+                                      onClick={() =>
+                                        copySql(`${message.id}-${i}`, query)
+                                      }
                                       className="text-[11px] px-2 py-1 rounded bg-elevated hover:bg-elevated/80 text-text-secondary"
                                     >
                                       {copiedKey === `${message.id}-${i}`
@@ -372,24 +304,31 @@ export default function Chat() {
                                       },
                                     }}
                                   >
-                                    {formatSqlQuery(
-                                      (part.input as unknown as AIInput).query,
-                                    )}
+                                    {query}
                                   </SyntaxHighlighter>
                                 </div>
                               )}
-                              {part.state === "output-available" &&
-                                (part.output as unknown as AIOutput) && (
-                                  <div className="text-xs text-text-secondary">
-                                    Returned{" "}
-                                    {(part.output as unknown as AIOutput).rows
-                                      ?.length || 0}{" "}
-                                    rows
-                                  </div>
-                                )}
+                              {part.state === "output-error" && (
+                                <div className="text-xs text-accent-danger">
+                                  {(
+                                    part as unknown as {
+                                      errorText?: string;
+                                    }
+                                  ).errorText ?? "The query failed."}
+                                </div>
+                              )}
+                              {output && (
+                                <div className="text-xs text-text-secondary">
+                                  Returned {output.rowCount ?? 0} rows
+                                  {output.truncated
+                                    ? ` (showing first ${output.rows?.length ?? 0})`
+                                    : ""}
+                                </div>
+                              )}
                             </ToolStatusCard>
                           </div>
                         );
+                      }
 
                       case "step-start":
                         return (
