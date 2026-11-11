@@ -1,7 +1,28 @@
 {
-  "name": "sql-agent",
+  "name": "querymind",
   "version": "0.1.0",
   "private": true,
+  "description": "Natural language to SQL chat app with FTS5 schema retrieval, a read-only query guard, and a seeded SQLite database.",
+  "keywords": [
+    "nextjs",
+    "ai-sdk",
+    "openrouter",
+    "sql",
+    "text-to-sql",
+    "rag",
+    "fts5",
+    "turso",
+    "drizzle"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darshil-here/chat-sql-agent.git"
+  },
+  "homepage": "https://chat-sql-agent.vercel.app",
+  "bugs": {
+    "url": "https://github.com/darshil-here/chat-sql-agent/issues"
+  },
+  "author": "Darshil Prajapati",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,7 +38,6 @@
     "@ai-sdk/react": "^3.0.176",
     "@libsql/client": "^0.17.3",
     "@openrouter/ai-sdk-provider": "^2.10.0",
-    "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/typography": "^0.5.20",

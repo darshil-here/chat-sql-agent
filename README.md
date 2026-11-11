@@ -1,117 +1,158 @@
 # QueryMind
 
-QueryMind is a natural-language-to-SQL chat application. Ask a question about your data in plain English, and an AI agent retrieves the relevant database schema, generates a SQLite query, executes it, and answers you in business language — no SQL knowledge required.
+Ask a question about a database in plain English. QueryMind retrieves the relevant schema, writes SQLite, runs it through a read-only guard, and answers in business language.
 
-What sets it apart is a **SQL-focused RAG pipeline**: before the model writes any SQL, a full-text search step retrieves only the schema, columns, and sample rows that are relevant to *your* question. This keeps the LLM grounded in the actual data model instead of guessing at table and column names, which meaningfully improves query accuracy.
+Live demo: [chat-sql-agent.vercel.app](https://chat-sql-agent.vercel.app)
+
+The demo database is a seeded e-commerce and SaaS schema with 24 tables and about 8,335 rows.
 
 ---
 
-## Key capabilities
+## What it does
 
-- **Natural-language questions → SQL → answers**, streamed back in real time.
-- **SQL RAG retrieval** over schema metadata using SQLite FTS5 (no embeddings, no vector store).
-- **Schema-aware grounding** — the model only sees tables/columns relevant to the question, plus a few sample rows from each.
-- **Dry Run mode** — generate and inspect the SQL without executing it, ideal for review or demos.
-- **Read-only guard** — only `SELECT` statements are allowed; destructive SQL is blocked in both the prompt and a server-side validator.
-- **Database Guide panel** — an in-app reference listing all 24 tables and example questions, so testers know what they can ask.
-- **Seeded demo database** — 24 tables and ~8,335 rows of realistic faker data across a multi-company e-commerce/SaaS schema.
+- **Natural language to SQL.** A question becomes a SQL query, a result table, and a plain-English answer.
+- **Schema retrieval with FTS5.** A full-text search over table descriptions picks the tables that match the question. No embeddings, no vector store.
+- **Sample rows in context.** Each retrieved table includes a few real rows, so the model sees actual values and casing.
+- **Dry Run mode.** Generate SQL without running it.
+- **Read-only guard.** The server accepts a single `SELECT` or read-only `WITH` statement and rejects DDL and DML keywords.
+- **Database guide.** An in-app panel lists every table and a set of example questions.
 
 ---
 
 ## How it works
 
-1. **You ask a question** (e.g. *"What is the total revenue from completed orders?"*).
-2. **SQL RAG** (`lib/sql-rag.ts`) cleans the question into keywords, runs an FTS5 `MATCH` query against `schema_metadata` (trying `AND` of keywords first, falling back to `OR`), and returns the top matching tables.
-3. For each matching table it pulls the **description, column types, relationships, and 3 sample rows** — giving the LLM both the shape and the actual values of the data.
-4. This context is injected into a **system prompt** that constrains the model to:
-   - use only the tables/columns in the provided schema,
-   - write SQLite-compatible `SELECT` statements,
-   - disambiguate similar tables using documented business rules, and
-   - retry on failure (bounded) rather than fabricate results.
-5. The model calls a **`db` tool** with the generated SQL. The server runs `assertSafeReadOnlyQuery` (single statement, `SELECT`/`WITH` only, no DDL/DML keywords) before executing against Turso.
-6. Results return to the chat UI as a formatted card showing the SQL and row count, followed by the model's plain-English answer.
-7. In **Dry Run mode**, the tool is removed entirely and the model returns only the SQL code block for inspection.
-
----
-
-## Architecture
+1. You ask a question.
+2. `lib/sql-rag.ts` removes stop words, searches the `schema_metadata_fts` index, and returns the top matching tables.
+3. For each table it adds the description, column types, relationships, and three sample rows to the system prompt.
+4. The model writes SQL and calls the `db` tool.
+5. `assertSafeReadOnlyQuery` checks the statement before it reaches the database.
+6. The result returns to the UI as a SQL card and a plain-English answer.
+7. In Dry Run mode the tool is removed, so the model can only return SQL.
 
 ```mermaid
 flowchart LR
-    subgraph Client["🖥️ Client"]
-        U["User"]
-        UI["Chat UI<br/><small>app/chat</small>"]
-    end
-
-    subgraph App["⚙️ Application Layer"]
-        API["Chat API Route<br/><small>app/api/chat/route.ts</small>"]
-        Guard["Read-only Guard<br/><small>assertSafeReadOnlyQuery</small>"]
-    end
-
-    subgraph RAGLayer["🔍 SQL RAG"]
-        RAG["sql-rag.ts<br/><small>getRAGContext</small>"]
-        FTS[("FTS5 Index<br/>schema_metadata_fts")]
-        SM[("Schema Metadata<br/>schema_metadata")]
-    end
-
-    subgraph DataLayer["🗄️ Data"]
-        DB1[("Turso DB<br/><small>libSQL / SQLite</small>")]
-    end
-
-    subgraph External["☁️ External"]
-        LLM["LLM<br/>Nemotron 3 Nano 30B<br/><small>via OpenRouter</small>"]
-    end
-
-    U --> UI --> API
-    API --> RAG
-    RAG --> FTS
-    RAG --> SM
-    RAG -.->|sample rows| DB1
-
-    RAG ==>|"grounded schema +<br/>sample rows"| API
-    API ==>|"system prompt<br/>(schema context)"| LLM
-    LLM ==>|"generated SQL"| API
-
-    API --> Guard --> DB1
-    DB1 -->|rows| API
-    API -->|streamed response| UI
-    UI --> U
-
-    classDef client fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
-    classDef app fill:#fef3c7,stroke:#b45309,color:#78350f
-    classDef rag fill:#dcfce7,stroke:#15803d,color:#14532d
-    classDef data fill:#f3e8ff,stroke:#7e22ce,color:#581c87
-    classDef ext fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d
-
-    class U,UI client
-    class API,Guard app
-    class RAG,FTS,SM rag
-    class DB1 data
-    class LLM ext
+    U["User"] --> UI["Chat UI"]
+    UI --> API["Chat API Route"]
+    API --> RAG["SQL RAG<br/>getRAGContext"]
+    RAG --> FTS[("FTS5 Index")]
+    RAG --> SM[("Schema Metadata")]
+    RAG -.->|sample rows| DB[("Turso DB")]
+    RAG ==>|schema + samples| API
+    API ==>|system prompt| LLM["Nemotron 3.5 Super VL<br/>via OpenRouter"]
+    LLM ==>|generated SQL| API
+    API --> Guard["Read-only guard"]
+    Guard --> DB
+    DB -->|rows| API
+    API -->|stream| UI
 ```
-
-The arrow from **SQL RAG → Chat API → LLM** is the key edge: retrieved schema and sample rows are injected into the system prompt *before* the model generates SQL, so generation is grounded in the real data model rather than the model's prior assumptions.
 
 ---
 
 ## Tech stack
 
-| Layer            | Technology                                                              |
-| ---------------- | ----------------------------------------------------------------------- |
-| Framework        | [Next.js 16](https://nextjs.org) (App Router, Turbopack)                |
-| AI SDK           | [`ai`](https://sdk.vercel.ai) + `@ai-sdk/react` (`useChat`)             |
-| Model            | `nvidia/nemotron-3-nano-30b-a3b:free` via [`@openrouter/ai-sdk-provider`]|
-| Database         | [Turso](https://turso.tech) (libSQL/SQLite)                             |
-| ORM / migrations | [Drizzle ORM](https://orm.drizzle.team) + `drizzle-kit`                 |
-| SQL RAG           | SQLite FTS5 full-text search on a `schema_metadata` table               |
-| UI               | React 19, Tailwind CSS v4, Radix primitives, `react-markdown`           |
-| Seed data        | [`@faker-js/faker`](https://fakerjs.dev) (~8,335 rows, 24 tables)       |
+| Layer | Technology |
+| --- | --- |
+| Framework | Next.js 16, App Router |
+| AI SDK | `ai` and `@ai-sdk/react` |
+| Model | `nvidia/nemotron-3.5-super-vl:free` via OpenRouter |
+| Database | Turso, libSQL/SQLite |
+| ORM and migrations | Drizzle ORM and `drizzle-kit` |
+| Retrieval | SQLite FTS5 over a `schema_metadata` table |
+| UI | React 19, Tailwind CSS v4, Radix primitives, `react-markdown` |
+| Seed data | `@faker-js/faker`, 24 tables, about 8,335 rows |
 
 ---
 
-## Safety notes and limitations
+## Getting started
 
-- **Read-only enforcement is defense-in-depth.** The model's system prompt forbids non-`SELECT` statements, and `assertSafeReadOnlyQuery` re-validates on the server (single statement, `SELECT`/`WITH` only, blocks DDL/DML keywords). For production, also run the DB connection as a least-privilege / read-only user at the database layer.
-- **Generated SQL should be reviewed before running against production data.** Dry Run mode exists for exactly this.
-- **RAG is FTS5-based, not embedding-based.** This keeps the stack lean (no vector store, no embedding model) and works well for schema-keyword matching, but won't catch semantic synonyms the way an embedding store could. The `cleanQuestion` + AND-then-OR fallback handles most phrasing variations.
-- **The database in this repo is seeded demo data**, not a real production dataset.
+You need Node.js 20.9 or newer, a [Turso](https://turso.tech) database, and an [OpenRouter](https://openrouter.ai/keys) API key.
+
+```bash
+git clone https://github.com/darshil-here/chat-sql-agent.git
+cd chat-sql-agent
+npm install
+cp .env.example .env.local
+```
+
+Fill in the three values in `.env.local`:
+
+```bash
+OPENROUTER_API_KEY=your-openrouter-key
+TURSO_DATABASE_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=your-turso-token
+```
+
+Create the schema, seed the data, and build the FTS index. Run this once on a fresh database.
+
+```bash
+npm run db:setup
+```
+
+Start the app:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The chat is at `/chat`.
+
+### Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm run db:setup` | Apply migrations, seed data, seed metadata, rebuild FTS |
+| `npm run db:generate` | Generate a Drizzle migration |
+| `npm run db:migrate` | Apply Drizzle migrations |
+| `npm run db:seed` | Reseed the demo data |
+| `npm run db:studio` | Open Drizzle Studio |
+| `npx tsx scripts/test-rag.ts "question"` | Inspect the tables a question retrieves |
+
+---
+
+## Project structure
+
+```
+app/
+  api/chat/route.ts      Chat endpoint, system prompt, SQL guard
+  chat/page.tsx          Chat UI
+  page.tsx               Landing page
+components/
+  chat/                  Composer, messages, SQL card, database guide
+  ui/                    Small Radix and Tailwind primitives
+db/
+  schema.ts              24 table definitions plus schema_metadata
+  db.seed.ts             Faker seed script
+  migrations/            Drizzle migrations
+lib/
+  sql-rag.ts             FTS5 retrieval and sample rows
+scripts/
+  setup-sql-rag.ts       One-shot database setup
+  seed-schema-metadata.ts
+  test-rag.ts
+evals/
+  questions.json         Seed questions for the evaluation set
+```
+
+---
+
+## Design notes
+
+**Why FTS5 instead of embeddings.** The search corpus is 24 table descriptions, not a document collection. A keyword index is enough to map "revenue" or "invoices" to a table, and it adds no embedding model, no vector database, and no extra network call. The tradeoff is that FTS5 does not understand synonyms. The retrieval code handles that with stop words and an `AND` then `OR` fallback.
+
+**Why the guard runs on the server.** The system prompt tells the model to write `SELECT` only. A prompt is not an enforcement mechanism, so the route checks every statement again before it reaches Turso. This is defense in depth, not a replacement for a read-only database user.
+
+**Why Dry Run exists.** Generated SQL is still generated SQL. Dry Run lets you inspect the query before it runs, which helps during demos and debugging.
+
+**Scope.** This is a portfolio project with seeded data, not a production database tool. The interesting parts are the retrieval step, the prompt, and the guard. The UI is deliberately small.
+
+---
+
+## Limitations
+
+- The demo data comes from faker. It looks realistic but it is not a real business dataset.
+- FTS5 matches keywords, not meaning. A question that uses a different word for the same concept can miss the right table. This is the main accuracy bottleneck.
+- The chat route has no authentication and no rate limit yet. Add one before exposing it publicly.
+- Generated SQL should be reviewed before it runs against real data. Use Dry Run, and use a read-only database user in production.

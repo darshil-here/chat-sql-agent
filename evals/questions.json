@@ -1,0 +1,8 @@
+[
+  {
+    "id": "customer-orders-vs-purchase-orders",
+    "question": "Which customers have placed the most orders, and what are their subscription plans?",
+    "expected_tables": ["customers", "orders", "subscriptions"],
+    "notes": "Must use orders (customer orders), not purchase_orders (vendor restocking). A company_id is not a customer_id. Answer should show customer name, order count, and plan name."
+  }
+]

@@ -1,48 +1,49 @@
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes. APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-## Project: QueryMind — NL to SQL Chat App
+## Project: QueryMind
 
-### Tech Stack
-- **LLM**: NVIDIA Nemotron 3 Nano 30B via OpenRouter (`@openrouter/ai-sdk-provider`)
-- **DB**: Turso (SQLite) + Drizzle ORM
-- **SQL RAG**: FTS5 (vectorless) — no embeddings, no vector store
-- **Data**: faker-js for all seeding (~8,335 rows across 24 tables)
+A natural language to SQL chat app. The model gets schema context from an FTS5 search, writes SQLite, and calls a server-side tool after a read-only guard.
 
-### Scripts
+### Stack
+
+- Next.js 16 App Router, React 19, Tailwind CSS v4
+- AI SDK 6 with `@openrouter/ai-sdk-provider`
+- Model: `nvidia/nemotron-3.5-super-vl:free` in `app/api/chat/route.ts`
+- Turso (libSQL) with Drizzle ORM
+- Retrieval: SQLite FTS5 over `schema_metadata`, no embeddings
+- Seed data: faker, 24 tables, about 8,335 rows
+
+### Commands
+
 ```bash
-npm run dev          # Start dev server
-npm run db:setup     # Run full setup (migrations + seed + FTS5 rebuild)
-npm run db:generate  # Generate migrations
-npm run db:migrate   # Apply migrations
-npm run db:seed      # Seed database with faker
-npm run db:studio    # Open Drizzle Studio
-npx tsx scripts/test-rag.ts "YOUR QUESTION"  # Test RAG retrieval
+npm run dev                                  # Dev server
+npm run build                                # Production build
+npm run lint                                 # ESLint
+npm run db:setup                             # Migrations, seed, metadata, FTS rebuild
+npm run db:seed                              # Reseed demo data
+npm run db:studio                            # Drizzle Studio
+npx tsx scripts/test-rag.ts "your question"  # Check which tables RAG returns
 ```
 
-### Current Status (Step 3.6 Complete)
-- [x] Gemini → NVIDIA Nemotron 3 Nano 30B via OpenRouter
-- [x] 24 tables with faker seed data (~8,335 rows)
-- [x] FTS5 schema metadata table + triggers
-- [x] SQL RAG: `getRAGContext()` returns relevant schemas + sample rows
-- [x] FTS5 tuned: removed `columns`/`relationships` from index, AND-then-OR matching, stop words
-- [x] RAG integrated into `app/api/chat/route.ts` — replaced old `schema` tool with `getRAGContext()` injection
-- [x] Setup script: `scripts/setup-sql-rag.ts` — runs migrations, seed, metadata, and FTS5 rebuild in one command
-- [x] System prompt upgraded: 6-section structure, general disambiguation, bounded retries, hardened SQL guard
-- [x] Dry Run mode: flask icon toggle in composer, only shows SQL without executing
+`npm run db:setup` expects a fresh database. See `README.md` for setup.
 
-### Next Steps
-1. **Step 8**: Add "?" button with project overview for recruiters
-2. **Step 9**: Improve landing page
+### Key files
 
-### Key Files
-- `lib/sql-rag.ts` — RAG logic (FTS5 search, sample rows, `getRAGContext()`)
-- `app/api/chat/route.ts` — API route (needs RAG integration)
-- `db/schema.ts` — 24 table definitions + `schemaMetadataTable`
-- `db/db.seed.ts` — Faker seed script
-- `scripts/seed-schema-metadata.ts` — Seeds FTS5 metadata
-- `scripts/setup-sql-rag.ts` — Full setup script (migrations + seed + metadata + FTS5 rebuild)
-- `scripts/test-rag.ts` — Manual RAG testing
+- `app/api/chat/route.ts`: system prompt, model call, `db` tool, `assertSafeReadOnlyQuery`
+- `lib/sql-rag.ts`: `getRAGContext`, FTS5 query building, sample rows
+- `db/schema.ts`: 24 business tables plus `schemaMetadataTable`
+- `db/db.seed.ts`: faker seed data
+- `scripts/setup-sql-rag.ts`: one-shot setup path
+- `evals/questions.json`: evaluation questions with expected tables
+
+### Rules
+
+- Never commit `.env.local`. Use `.env.example` for new variables.
+- Any new database tool must go through `assertSafeReadOnlyQuery`.
+- The model only sees tables returned by `getRAGContext`. If retrieval misses a table, the answer will be wrong. Test retrieval changes with `scripts/test-rag.ts`.
+- Keep the system prompt constraints intact: `SELECT` only, no invented tables, no fabricated results.
+- Use the design tokens in `app/globals.css`. See `UI-THEME.md` for the token map.
