@@ -15,23 +15,23 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+const GITHUB_URL = "https://github.com/darshil-here/chat-sql-agent";
+
 const sections = [
   { id: "features", label: "Overview" },
   { id: "how-it-works", label: "How It Works" },
-  { id: "tech-stack", label: "Tech Stack" },
-  { id: "github", label: "GitHub" },
 ];
 
 const features = [
   {
     icon: MessageSquare,
     title: "Ask in plain English",
-    desc: "The model is fine-tuned to understand natural language inputs and map them to the correct database query, handling ambiguous phrasing, varied sentence structures, and context.",
+    desc: "The model reads the schema, writes SQLite, and explains the result. A retrieval step keeps it pointed at the tables your question actually needs.",
   },
   {
     icon: Database,
     title: "Live backend integration",
-    desc: "The app connects to a real database backend and fetches live data on every query. No hardcoded responses, no mock data, every answer reflects the actual state of the database.",
+    desc: "Every answer comes from a real query against a Turso database. The demo data is seeded with faker, so you can ask the same questions without touching production data.",
   },
   {
     icon: Search,
@@ -50,7 +50,7 @@ const steps = [
   {
     icon: MessageCircle,
     title: "2. AI Interprets",
-    desc: "The fine-tuned model parses the question, determines intent, and constructs the appropriate database query to fetch the right data.",
+    desc: "The retrieval step finds the relevant tables, then the model writes a SQLite query against that schema.",
     glow: true,
   },
   {
@@ -152,7 +152,7 @@ export default function QueryMindLanding() {
           {/* Desktop right */}
           <div className="hidden sm:flex items-center gap-3">
             <Link
-              href="https://github.com"
+              href={GITHUB_URL}
               target="_blank"
               className="btn-shiny inline-flex items-center gap-1.5 text-sm font-medium px-5 py-2.5 rounded-xl transition-all duration-300 relative"
               style={{
@@ -204,7 +204,7 @@ export default function QueryMindLanding() {
             ))}
             <div className="pt-2 flex flex-col gap-2">
               <Link
-                href="https://github.com"
+                href={GITHUB_URL}
                 target="_blank"
                 className="btn-shiny inline-flex items-center justify-center gap-1.5 text-sm font-medium px-5 py-2.5 rounded-xl transition-all duration-300 relative"
                 style={{
@@ -259,8 +259,8 @@ export default function QueryMindLanding() {
               className="text-base max-w-[520px] mx-auto mb-10 leading-relaxed"
               style={{ color: "var(--lp-text-secondary)" }}
             >
-              AskDB connects to backend and lets anyone ask data related
-              questions in plain English — no SQL needed.
+              QueryMind connects to a seeded SQLite database and lets anyone
+              ask data questions in plain English. No SQL needed.
             </p>
           </ScrollReveal>
 
@@ -286,7 +286,7 @@ export default function QueryMindLanding() {
                 <ArrowRight size={18} />
               </Link>
               <Link
-                href="https://github.com"
+                href={GITHUB_URL}
                 target="_blank"
                 className="inline-flex items-center gap-2 text-base font-medium px-6 py-3.5 rounded-xl transition-all duration-300"
                 style={{
@@ -341,7 +341,7 @@ export default function QueryMindLanding() {
                       borderRadius: "12px 12px 4px 12px",
                     }}
                   >
-                    How many new users signed up this month?
+                    How many new customers signed up this month?
                   </div>
                 </div>
 
@@ -356,7 +356,7 @@ export default function QueryMindLanding() {
                     }}
                   >
                     <p style={{ color: "var(--lp-text-on-dark)" }}>
-                      There were <strong>1,284 new signups</strong> in May 2025.
+                      There were <strong>128 new customers</strong> this month.
                       That&apos;s up 18% from last month.
                       <span
                         className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse"
@@ -385,9 +385,9 @@ export default function QueryMindLanding() {
                           fontFamily: "ui-monospace, monospace",
                         }}
                       >
-                        {`SELECT COUNT(*)
-FROM users
-WHERE created_at >= '2025-05-01'`}
+                        {`SELECT COUNT(*) AS new_customers
+FROM customers
+WHERE signup_date >= date('now', 'start of month')`}
                       </pre>
                     </details>
                   </div>
@@ -496,35 +496,6 @@ WHERE created_at >= '2025-05-01'`}
 
           {/* Steps with connecting line */}
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-8 md:gap-0">
-            {/* Connecting line (desktop) */}
-            {/*
-            <div
-              className="hidden md:block absolute top-8 left-[15%] right-[15%] h-px"
-              style={{ backgroundColor: "var(--lp-border-dark)" }}
-            />
-             */}
-
-            {/* Connecting dots */}
-            {/*
-            <div
-              className="hidden md:block absolute top-8 left-[15%] right-[15%] flex justify-between pointer-events-none"
-              style={{ transform: "translateY(-4px)" }}
-            >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: "var(--lp-primary)" }}
-              />
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: "var(--lp-primary)" }}
-              />
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: "var(--lp-primary)" }}
-              />
-            </div>
-            */}
-
             {steps.map((step, i) => (
               <ScrollReveal key={i}>
                 <div className="flex flex-col items-center text-center md:w-1/3 md:px-6 relative">
@@ -623,7 +594,7 @@ WHERE created_at >= '2025-05-01'`}
                   <ArrowRight size={18} />
                 </Link>
                 <Link
-                  href="https://github.com"
+                  href={GITHUB_URL}
                   target="_blank"
                   className="inline-flex items-center gap-2 text-base font-medium px-6 py-3.5 rounded-xl transition-all duration-300"
                   style={{
@@ -664,10 +635,10 @@ WHERE created_at >= '2025-05-01'`}
               color: "var(--lp-text-muted)",
             }}
           >
-            <p>Built by [Your Name] &middot; 2025</p>
+            <p>Built by Darshil Prajapati &middot; 2026</p>
             <div className="flex items-center gap-4">
               <Link
-                href="https://github.com"
+                href={GITHUB_URL}
                 target="_blank"
                 className="transition-colors"
                 style={{ color: "var(--lp-text-muted)" }}
@@ -692,7 +663,7 @@ WHERE created_at >= '2025-05-01'`}
                   (e.currentTarget.style.color = "var(--lp-text-muted)")
                 }
               >
-                Live Demo
+                Open app
               </Link>
             </div>
           </div>
