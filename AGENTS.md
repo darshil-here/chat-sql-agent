@@ -6,7 +6,7 @@ This version has breaking changes. APIs, conventions, and file structure may all
 
 ## Project: QueryMind
 
-A natural language to SQL chat app. The model gets schema context from an FTS5 search, writes SQLite, and calls a server-side tool after a read-only guard.
+A natural language to SQL chat app. The model gets the full schema plus FTS-selected sample rows, writes SQLite, and calls a server-side tool after a read-only guard.
 
 ### Stack
 
@@ -23,27 +23,31 @@ A natural language to SQL chat app. The model gets schema context from an FTS5 s
 npm run dev                                  # Dev server
 npm run build                                # Production build
 npm run lint                                 # ESLint
-npm run db:setup                             # Migrations, seed, metadata, FTS rebuild
+npm run db:setup                             # Migrations, seed, metadata
 npm run db:seed                              # Reseed demo data
 npm run db:studio                            # Drizzle Studio
-npx tsx scripts/test-rag.ts "your question"  # Check which tables RAG returns
+npm run eval                                 # Retrieval evaluation
+npm run test:guard                           # SQL guard checks
+npx tsx scripts/test-rag.ts "your question"  # Inspect the retrieval context
 ```
 
-`npm run db:setup` expects a fresh database. See `README.md` for setup.
+`npm run db:setup` is safe to rerun. See `README.md` for setup.
 
 ### Key files
 
-- `app/api/chat/route.ts`: system prompt, model call, `db` tool, `assertSafeReadOnlyQuery`
-- `lib/sql-rag.ts`: `getRAGContext`, FTS5 query building, sample rows
+- `app/api/chat/route.ts`: system prompt, model call, `db` tool, 200-row cap
+- `lib/sql-rag.ts`: full schema block, table-name boost, FTS ranking, sample rows
+- `lib/sql-guard.ts`: `assertSafeReadOnlyQuery`
 - `db/schema.ts`: 24 business tables plus `schemaMetadataTable`
+- `db/schema-metadata.ts`: table docs and `seedSchemaMetadata`
 - `db/db.seed.ts`: faker seed data
-- `scripts/setup-sql-rag.ts`: one-shot setup path
+- `scripts/setup-sql-rag.ts`: migrations, seed, metadata
 - `evals/questions.json`: evaluation questions with expected tables
 
 ### Rules
 
 - Never commit `.env.local`. Use `.env.example` for new variables.
 - Any new database tool must go through `assertSafeReadOnlyQuery`.
-- The model only sees tables returned by `getRAGContext`. If retrieval misses a table, the answer will be wrong. Test retrieval changes with `scripts/test-rag.ts`.
+- The model sees every table from `getRAGContext`. FTS only decides which tables get sample rows. Test retrieval changes with `npm run eval`.
 - Keep the system prompt constraints intact: `SELECT` only, no invented tables, no fabricated results.
 - Use the design tokens in `app/globals.css`. See `UI-THEME.md` for the token map.

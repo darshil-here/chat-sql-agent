@@ -3,6 +3,101 @@
     "id": "customer-orders-vs-purchase-orders",
     "question": "Which customers have placed the most orders, and what are their subscription plans?",
     "expected_tables": ["customers", "orders", "subscriptions"],
-    "notes": "Must use orders (customer orders), not purchase_orders (vendor restocking). A company_id is not a customer_id. Answer should show customer name, order count, and plan name."
+    "notes": "Must use orders (customer orders), not purchase_orders (vendor restocking). A company_id is not a customer_id."
+  },
+  {
+    "id": "country-most-customers",
+    "question": "Which country has the highest number of customers?",
+    "expected_tables": ["customers"]
+  },
+  {
+    "id": "top-products-by-quantity",
+    "question": "What are the top 3 best-selling products by quantity sold?",
+    "expected_tables": ["products", "order_items"]
+  },
+  {
+    "id": "active-subscriptions-mrr",
+    "question": "How many active subscriptions are there, and what is the monthly recurring revenue?",
+    "expected_tables": ["subscriptions"]
+  },
+  {
+    "id": "products-below-reorder-point",
+    "question": "Which products are below their reorder point?",
+    "expected_tables": ["products", "inventory"]
+  },
+  {
+    "id": "revenue-completed-orders",
+    "question": "What is the total revenue from completed orders?",
+    "expected_tables": ["orders"]
+  },
+  {
+    "id": "open-high-priority-tickets",
+    "question": "Show me open support tickets with high priority.",
+    "expected_tables": ["support_tickets"]
+  },
+  {
+    "id": "vendors-most-purchase-orders",
+    "question": "Which vendors have the most purchase orders?",
+    "expected_tables": ["vendors", "purchase_orders"]
+  },
+  {
+    "id": "average-rating-by-category",
+    "question": "What is the average rating for each product category?",
+    "expected_tables": ["reviews", "products"]
+  },
+  {
+    "id": "overdue-invoices-with-customers",
+    "question": "List overdue invoices with customer names.",
+    "expected_tables": ["invoices", "customers"]
+  },
+  {
+    "id": "monthly-revenue",
+    "question": "Show monthly revenue for the last six months.",
+    "expected_tables": ["orders"]
+  },
+  {
+    "id": "customer-lifetime-spend",
+    "question": "Who are the top 10 customers by lifetime spend?",
+    "expected_tables": ["customers"]
+  },
+  {
+    "id": "refund-rate",
+    "question": "What is the refund rate by month?",
+    "expected_tables": ["refunds", "orders"]
+  },
+  {
+    "id": "shipments-in-transit",
+    "question": "How many shipments are still in transit?",
+    "expected_tables": ["shipments"]
+  },
+  {
+    "id": "warehouse-capacity",
+    "question": "Which warehouses have the most storage capacity?",
+    "expected_tables": ["warehouses"]
+  },
+  {
+    "id": "campaign-roi",
+    "question": "Which marketing campaigns have the best conversion rate?",
+    "expected_tables": ["campaigns"]
+  },
+  {
+    "id": "employees-by-department",
+    "question": "How many employees work in each department?",
+    "expected_tables": ["employees", "departments"]
+  },
+  {
+    "id": "tax-rate-by-region",
+    "question": "What are the tax rates for each region?",
+    "expected_tables": ["tax_rates", "regions"]
+  },
+  {
+    "id": "loyalty-points-top-customers",
+    "question": "Which customers have earned the most loyalty points?",
+    "expected_tables": ["loyalty_points", "customers"]
+  },
+  {
+    "id": "low-stock-inventory",
+    "question": "Which products have low inventory across all warehouses?",
+    "expected_tables": ["inventory", "products"]
   }
 ]

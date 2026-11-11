@@ -11,8 +11,8 @@ The demo database is a seeded e-commerce and SaaS schema with 24 tables and abou
 ## What it does
 
 - **Natural language to SQL.** A question becomes a SQL query, a result table, and a plain-English answer.
-- **Schema retrieval with FTS5.** A full-text search over table descriptions picks the tables that match the question. No embeddings, no vector store.
-- **Sample rows in context.** Each retrieved table includes a few real rows, so the model sees actual values and casing.
+- **Schema grounding with FTS5.** The full 24-table schema is always in the prompt. FTS5 and table-name matching pick which tables get sample rows. No embeddings, no vector store.
+- **Sample rows in context.** The top five matching tables include a few real rows, so the model sees actual values and casing.
 - **Dry Run mode.** Generate SQL without running it.
 - **Read-only guard.** The server accepts a single `SELECT` or read-only `WITH` statement and rejects DDL and DML keywords.
 - **Database guide.** An in-app panel lists every table and a set of example questions.
@@ -22,11 +22,11 @@ The demo database is a seeded e-commerce and SaaS schema with 24 tables and abou
 ## How it works
 
 1. You ask a question.
-2. `lib/sql-rag.ts` removes stop words, searches the `schema_metadata_fts` index, and returns the top matching tables.
-3. For each table it adds the description, column types, relationships, and three sample rows to the system prompt.
+2. `lib/sql-rag.ts` combines the last three user turns, boosts tables whose names match the keywords, and uses FTS5 to rank the rest.
+3. The full schema for every table goes into the system prompt. The top five tables also get three sample rows.
 4. The model writes SQL and calls the `db` tool.
-5. `assertSafeReadOnlyQuery` checks the statement before it reaches the database.
-6. The result returns to the UI as a SQL card and a plain-English answer.
+5. `lib/sql-guard.ts` checks the statement before it reaches the database.
+6. The result returns to the UI as a SQL card and a plain-English answer. Tool output is capped at 200 rows.
 7. In Dry Run mode the tool is removed, so the model can only return SQL.
 
 ```mermaid
@@ -60,6 +60,22 @@ flowchart LR
 | Retrieval | SQLite FTS5 over a `schema_metadata` table |
 | UI | React 19, Tailwind CSS v4, Radix primitives, `react-markdown` |
 | Seed data | `@faker-js/faker`, 24 tables, about 8,335 rows |
+
+---
+
+## Evaluation
+
+`npm run eval` runs the 20 questions in `evals/questions.json` against the retrieval layer.
+
+**Current score: 20/20 retrieval recall.**
+
+The check is whether every expected table lands in the top five tables that get sample rows. It is a regression test for retrieval, not a score of the model's final prose.
+
+The SQL guard has a small test suite too:
+
+```bash
+npm run test:guard
+```
 
 ---
 
@@ -108,7 +124,9 @@ Open [http://localhost:3000](http://localhost:3000). The chat is at `/chat`.
 | `npm run db:migrate` | Apply Drizzle migrations |
 | `npm run db:seed` | Reseed the demo data |
 | `npm run db:studio` | Open Drizzle Studio |
-| `npx tsx scripts/test-rag.ts "question"` | Inspect the tables a question retrieves |
+| `npm run eval` | Run the retrieval evaluation |
+| `npm run test:guard` | Run the SQL guard checks |
+| `npx tsx scripts/test-rag.ts "question"` | Inspect the context a question retrieves |
 
 ---
 
@@ -124,25 +142,31 @@ components/
   ui/                    Small Radix and Tailwind primitives
 db/
   schema.ts              24 table definitions plus schema_metadata
+  schema-metadata.ts     Table docs used by FTS
   db.seed.ts             Faker seed script
   migrations/            Drizzle migrations
 lib/
-  sql-rag.ts             FTS5 retrieval and sample rows
+  sql-rag.ts             Schema context and sample rows
+  sql-guard.ts           SELECT-only guard
 scripts/
-  setup-sql-rag.ts       One-shot database setup
+  setup-sql-rag.ts       Database setup
   seed-schema-metadata.ts
+  run-evals.ts           Retrieval evaluation
+  test-guard.ts          Guard checks
   test-rag.ts
 evals/
-  questions.json         Seed questions for the evaluation set
+  questions.json         Evaluation questions
 ```
 
 ---
 
 ## Design notes
 
-**Why FTS5 instead of embeddings.** The search corpus is 24 table descriptions, not a document collection. A keyword index is enough to map "revenue" or "invoices" to a table, and it adds no embedding model, no vector database, and no extra network call. The tradeoff is that FTS5 does not understand synonyms. The retrieval code handles that with stop words and an `AND` then `OR` fallback.
+**Why FTS5 instead of embeddings.** The search corpus is 24 table descriptions, not a document collection. A keyword index is enough to pick which tables get sample rows, and it adds no embedding model, no vector database, and no extra network call. The full schema is only about 2.6k tokens, so a retrieval miss costs more than the tokens saved. Every table is always included. FTS5 and table-name matching decide which five tables get sample data. The tradeoff is that FTS5 does not understand synonyms, which affects sample rows, not schema recall.
 
 **Why the guard runs on the server.** The system prompt tells the model to write `SELECT` only. A prompt is not an enforcement mechanism, so the route checks every statement again before it reaches Turso. This is defense in depth, not a replacement for a read-only database user.
+
+**Why tool output is capped.** A 5,000-row result costs more tokens than the answer is worth and can push the model off task. The tool returns at most 200 rows and tells the model when the result was truncated.
 
 **Why Dry Run exists.** Generated SQL is still generated SQL. Dry Run lets you inspect the query before it runs, which helps during demos and debugging.
 
@@ -153,6 +177,7 @@ evals/
 ## Limitations
 
 - The demo data comes from faker. It looks realistic but it is not a real business dataset.
-- FTS5 matches keywords, not meaning. A question that uses a different word for the same concept can miss the right table. This is the main accuracy bottleneck.
+- FTS5 matches keywords, not meaning. A question that uses a different word for the same concept can miss the tables that get sample rows. The full schema is still present, so the model can answer, but it may not see the value casing it needs.
 - The chat route has no authentication and no rate limit yet. Add one before exposing it publicly.
+- The free model can take one to two minutes to answer a question. The route allows up to five minutes.
 - Generated SQL should be reviewed before it runs against real data. Use Dry Run, and use a read-only database user in production.
