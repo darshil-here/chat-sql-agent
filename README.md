@@ -4,7 +4,7 @@ Ask a question about a database in plain English. QueryMind retrieves the releva
 
 Live demo: [chat-sql-agent.vercel.app](https://chat-sql-agent.vercel.app)
 
-The demo database is a seeded e-commerce and SaaS schema with 24 tables and about 8,335 rows.
+The demo database is a seeded e-commerce and SaaS schema with 24 tables and about 9,200 rows.
 
 ---
 
@@ -22,10 +22,10 @@ The demo database is a seeded e-commerce and SaaS schema with 24 tables and abou
 ## How it works
 
 1. You ask a question.
-2. `lib/sql-rag.ts` combines the last three user turns, boosts tables whose names match the keywords, and uses FTS5 to rank the rest.
+2. The chat route keeps the last three user turns. `lib/sql-rag.ts` boosts tables whose names match the keywords and uses FTS5 to rank the rest.
 3. The full schema for every table goes into the system prompt. The top five tables also get three sample rows.
 4. The model writes SQL and calls the `db` tool.
-5. `lib/sql-guard.ts` checks the statement before it reaches the database.
+5. `lib/db-query.ts` sends every statement through the guard, runs it, and caps the result.
 6. The result returns to the UI as a SQL card and a plain-English answer. Tool output is capped at 200 rows.
 7. In Dry Run mode the tool is removed, so the model can only return SQL.
 
@@ -59,7 +59,7 @@ flowchart LR
 | ORM and migrations | Drizzle ORM and `drizzle-kit` |
 | Retrieval | SQLite FTS5 over a `schema_metadata` table |
 | UI | React 19, Tailwind CSS v4, Radix primitives, `react-markdown` |
-| Seed data | `@faker-js/faker`, 24 tables, about 8,335 rows |
+| Seed data | `@faker-js/faker`, 24 tables, about 9,200 rows |
 
 ---
 
@@ -71,10 +71,10 @@ flowchart LR
 
 The check is whether every expected table lands in the top five tables that get sample rows. It is a regression test for retrieval, not a score of the model's final prose.
 
-The SQL guard has a small test suite too:
+The SQL guard, the query wrapper, the catalog and the prompts have a small test suite too:
 
 ```bash
-npm run test:guard
+npm test
 ```
 
 ---
@@ -119,14 +119,14 @@ Open [http://localhost:3000](http://localhost:3000). The chat is at `/chat`.
 | `npm run dev` | Start the development server |
 | `npm run build` | Production build |
 | `npm run lint` | Run ESLint |
-| `npm run db:setup` | Apply migrations, seed data, seed metadata, rebuild FTS |
+| `npm run db:setup` | Apply migrations, seed data, write the retrieval catalog |
 | `npm run db:generate` | Generate a Drizzle migration |
 | `npm run db:migrate` | Apply Drizzle migrations |
-| `npm run db:seed` | Reseed the demo data |
+| `npm run db:seed` | Reseed the demo data and the retrieval catalog |
 | `npm run db:studio` | Open Drizzle Studio |
 | `npm run eval` | Run the retrieval evaluation |
-| `npm run test:guard` | Run the SQL guard checks |
-| `npx tsx scripts/test-rag.ts "question"` | Inspect the context a question retrieves |
+| `npm test` | Run the guard, query, catalog and prompt tests |
+| `npx tsx scripts/preview-context.ts "question"` | Inspect the context a question retrieves |
 
 ---
 
@@ -134,28 +134,36 @@ Open [http://localhost:3000](http://localhost:3000). The chat is at `/chat`.
 
 ```
 app/
-  api/chat/route.ts      Chat endpoint, system prompt, SQL guard
-  chat/page.tsx          Chat UI
+  api/chat/route.ts      Chat endpoint: validation, instructions, db tool
+  chat/page.tsx          Chat shell (state and layout)
   page.tsx               Landing page
 components/
-  chat/                  Composer, messages, SQL card, database guide
+  chat/                  Composer, conversation, SQL card, database guide
+  landing/               Landing page link
   ui/                    Small Radix and Tailwind primitives
 db/
   schema.ts              24 table definitions plus schema_metadata
-  schema-metadata.ts     Table docs used by FTS
-  db.seed.ts             Faker seed script
+  catalog.ts             Table docs, guide groups, value domains, example questions
+  seed.ts                Faker seed data
+  seed-catalog.ts        Writes the catalog into schema_metadata for FTS
+  client.ts              Turso client and env loading
   migrations/            Drizzle migrations
 lib/
   sql-rag.ts             Schema context and sample rows
   sql-guard.ts           SELECT-only guard
+  db-query.ts            Guard, execute and cap every query
+  chat-contract.ts       Tool name, input schema, row cap, UI types
+  prompts.ts             System prompt for run and dry-run modes
+  env.ts                 .env.local loading and required variables
 scripts/
-  setup-sql-rag.ts       Database setup
-  seed-schema-metadata.ts
-  run-evals.ts           Retrieval evaluation
-  test-guard.ts          Guard checks
-  test-rag.ts
+  setup.ts               Migrate and seed
+  seed.ts                Reseed data and catalog
+  eval-retrieval.ts      Retrieval evaluation
+  preview-context.ts     Inspect the retrieval context
 evals/
   questions.json         Evaluation questions
+tests/
+  *.test.ts              Guard, query, catalog and prompt checks
 ```
 
 ---
@@ -164,7 +172,7 @@ evals/
 
 **Why FTS5 instead of embeddings.** The search corpus is 24 table descriptions, not a document collection. A keyword index is enough to pick which tables get sample rows, and it adds no embedding model, no vector database, and no extra network call. The full schema is only about 2.6k tokens, so a retrieval miss costs more than the tokens saved. Every table is always included. FTS5 and table-name matching decide which five tables get sample data. The tradeoff is that FTS5 does not understand synonyms, which affects sample rows, not schema recall.
 
-**Why the guard runs on the server.** The system prompt tells the model to write `SELECT` only. A prompt is not an enforcement mechanism, so the route checks every statement again before it reaches Turso. This is defense in depth, not a replacement for a read-only database user.
+**Why the guard runs on the server.** The system prompt tells the model to write `SELECT` only. A prompt is not an enforcement mechanism, so every statement goes through `lib/db-query.ts`, which runs the guard before Turso sees it. This is defense in depth, not a replacement for a read-only database user.
 
 **Why tool output is capped.** A 5,000-row result costs more tokens than the answer is worth and can push the model off task. The tool returns at most 200 rows and tells the model when the result was truncated.
 

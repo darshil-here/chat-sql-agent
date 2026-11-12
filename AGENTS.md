@@ -19,39 +19,45 @@ A natural language to SQL chat app. The model gets the full schema plus FTS-sele
 - Model: `nvidia/nemotron-3.5-super-vl:free` in `app/api/chat/route.ts`
 - Turso (libSQL) with Drizzle ORM
 - Retrieval: SQLite FTS5 over `schema_metadata`, no embeddings
-- Seed data: faker, 24 tables, about 8,335 rows
+- Seed data: faker, 24 tables, about 9,200 rows
 
 ### Commands
 
 ```bash
-npm run dev                                  # Dev server
-npm run build                                # Production build
-npm run lint                                 # ESLint
-npm run db:setup                             # Migrations, seed, metadata
-npm run db:seed                              # Reseed demo data
-npm run db:studio                            # Drizzle Studio
-npm run eval                                 # Retrieval evaluation
-npm run test:guard                           # SQL guard checks
-npx tsx scripts/test-rag.ts "your question"  # Inspect the retrieval context
+npm run dev                                     # Dev server
+npm run build                                   # Production build
+npm run lint                                    # ESLint
+npm test                                        # Guard, query, catalog, prompt tests
+npm run db:setup                                # Migrations, seed, catalog
+npm run db:seed                                 # Reseed demo data and catalog
+npm run db:studio                               # Drizzle Studio
+npm run eval                                    # Retrieval evaluation
+npx tsx scripts/preview-context.ts "your question"  # Inspect the retrieval context
 ```
 
 `npm run db:setup` is safe to rerun. See `README.md` for setup.
 
 ### Key files
 
-- `app/api/chat/route.ts`: system prompt, model call, `db` tool, 200-row cap
+- `app/api/chat/route.ts`: request validation, instructions, `db` tool wiring
+- `lib/chat-contract.ts`: tool name, input schema, row cap, UI message types
+- `lib/db-query.ts`: `runReadOnlyQuery`, the only path from SQL to the database
 - `lib/sql-rag.ts`: full schema block, table-name boost, FTS ranking, sample rows
-- `lib/sql-guard.ts`: `assertSafeReadOnlyQuery`
+- `lib/sql-guard.ts`: `assertSafeReadOnlyQuery` and the forbidden keywords
+- `lib/prompts.ts`: system prompt sections for run and dry-run modes
+- `db/catalog.ts`: table docs, guide groups, value domains, example questions
+- `db/seed.ts` / `db/seed-catalog.ts`: faker data and the FTS catalog
+- `db/client.ts`: Turso client
 - `db/schema.ts`: 24 business tables plus `schemaMetadataTable`
-- `db/schema-metadata.ts`: table docs and `seedSchemaMetadata`
-- `db/db.seed.ts`: faker seed data
-- `scripts/setup-sql-rag.ts`: migrations, seed, metadata
+- `scripts/setup.ts`: migrations, seed, catalog
 - `evals/questions.json`: evaluation questions with expected tables
+- `tests/`: `node:test` checks
 
 ### Rules
 
 - Never commit `.env.local`. Use `.env.example` for new variables.
-- Any new database tool must go through `assertSafeReadOnlyQuery`.
+- Every query goes through `runReadOnlyQuery` in `lib/db-query.ts`, which calls `assertSafeReadOnlyQuery`.
+- Table names, columns and value domains live in `db/catalog.ts`. `tests/catalog.test.ts` keeps it in sync with `db/schema.ts`.
 - The model sees every table from `getRAGContext`. FTS only decides which tables get sample rows. Test retrieval changes with `npm run eval`.
 - Keep the system prompt constraints intact: `SELECT` only, no invented tables, no fabricated results.
 - Use the design tokens in `app/globals.css`. See `UI-THEME.md` for the token map.
