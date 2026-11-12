@@ -21,7 +21,7 @@ Dark mode is the `.dark` class on `<html>`. `components/theme-provider.tsx` togg
 | `--bg-composer` | `rgba(245,245,245,0.95)` | `rgba(34,30,33,0.86)` | `bg-composer` |
 | `--text-primary` | `#171717` | `#e7e4e6` | `text-text-primary` |
 | `--text-secondary` | `#525252` | `#a7a2a6` | `text-text-secondary` |
-| `--text-muted` | `#737373` | `#7d787c` | `text-text-muted` |
+| `--text-muted` | `#6b6b6b` | `#8a8589` | `text-text-muted` |
 | `--border-subtle` | `rgba(0,0,0,0.10)` | `rgba(255,255,255,0.10)` | `border-border-subtle` |
 | `--accent-positive` | `#22c55e` | `#32d74b` | `text-accent-positive` |
 | `--accent-danger` | `#ef4444` | `#ff6b6b` | `text-accent-danger` |
@@ -30,6 +30,11 @@ Dark mode is the `.dark` class on `<html>`. `components/theme-provider.tsx` togg
 | `--selection-bg` | `#4d7c0f` | `#bbf746` | `::selection` only |
 | `--selection-text` | `#ffffff` | `#171717` | `::selection` only |
 | `--shadow-soft-value` | `0 10px 30px rgba(0,0,0,0.10)` | `0 10px 30px rgba(0,0,0,0.35)` | `shadow-soft` |
+| `--code-surface` | fixed `#0d0b0c` | fixed `#0d0b0c` | Code blocks keep a dark surface in both themes |
+| `--code-border` | fixed `rgba(255,255,255,0.08)` | same | Code block hairline |
+| `--scrollbar-thumb` | `rgba(0,0,0,0.16)` | `rgba(255,255,255,0.14)` | `.scroll-thin` |
+
+The code surface is deliberately fixed rather than themed: the Prism syntax theme is designed for dark backgrounds, so the block stays dark in light mode.
 
 The values are wired into Tailwind through `@theme inline`. Add a new token in both `:root` and `.dark`, then map it in `@theme inline` so a utility exists.
 
@@ -60,10 +65,13 @@ The landing page is intentionally dark in both themes. These values do not chang
 | `--lp-card-surface` | `#1e1e1e` | Cards and chat mockup |
 | `--lp-text-on-dark` | `#ffffff` | Headlines and primary copy |
 | `--lp-text-secondary` | `#d4d4d4` | Body copy |
-| `--lp-text-muted` | `#737373` | Footer and meta text |
+| `--lp-text-muted` | `#8a8a8a` | Footer and meta text |
 | `--lp-primary` | `#bbf746` | CTA, links, accents |
 | `--lp-primary-hover` | `#a3e635` | CTA hover |
 | `--lp-border-dark` | `#333333` | Borders |
+| `--lp-border-strong` | `#4a4a4a` | Hover borders on cards |
+| `--lp-nav` | `rgba(23,23,23,0.72)` | Translucent nav over content |
+| `--lp-nav-solid` | `#1a1a1a` | Open mobile menu |
 | `--lp-badge-text` | `#171717` | Text on lime buttons |
 | `--lp-shadow-card` | layered black shadow | Card elevation |
 
@@ -95,10 +103,24 @@ There is no custom radius token. If you need one, add `--radius-*` in `@theme`.
 
 ## Motion
 
-- Hover and focus transitions: 150ms to 300ms.
-- Chat guide open and close: 300ms with `cubic-bezier(.16,1,.3,1)`.
-- Landing sections fade in with `.scroll-reveal` and an `IntersectionObserver`.
-- The primary CTA uses `.btn-shiny`, a rotating conic gradient on hover.
+Tokens in `app/globals.css`:
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--motion-ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` | Entrances, presses, hover state changes |
+| `--motion-ease-move` | `cubic-bezier(0.77, 0, 0.175, 1)` | Elements moving on screen |
+| `--motion-ease-sheet` | `cubic-bezier(0.32, 0.72, 0, 1)` | Sheet and drawer movement |
+
+Tailwind exposes them as `ease-out-strong`, `ease-move` and `ease-sheet`.
+
+- UI transitions stay at 150–250ms. Never `ease-in` for a UI state change.
+- Pressable elements scale to `0.96` on `:active`.
+- Enter from `opacity: 0` plus a small translate or `scale(0.96)`, never `scale(0)`.
+- Chat guide open and close: 200ms transition, `scale(0.96)` to `1`.
+- Landing sections fade in with `.scroll-reveal` and an `IntersectionObserver`, staggered with `--reveal-delay` (0–210ms).
+- The primary CTA uses `.btn-shiny`, a single sheen pass on hover plus a soft halo.
+- New chat messages use `.message-in` (220ms, once per message, not per token).
+- `prefers-reduced-motion` removes transforms and looping motion but keeps opacity changes.
 
 Keep new motion short and understated. Avoid bounce easing.
 
