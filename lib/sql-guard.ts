@@ -4,7 +4,7 @@
  * database layer too.
  */
 
-const FORBIDDEN_KEYWORDS = [
+export const FORBIDDEN_KEYWORDS = [
   "INSERT",
   "UPDATE",
   "DELETE",
@@ -102,5 +102,12 @@ export function assertSafeReadOnlyQuery(query: string): void {
     if (wordBoundaryPattern.test(sanitized)) {
       throw new Error(`Forbidden SQL operation: ${word}`);
     }
+  }
+
+  // REPLACE is both a write statement (WITH x AS (...) REPLACE INTO ...) and a
+  // string function (replace(name, 'a', 'b')). Only the statement form is
+  // forbidden, and it is never followed by an opening parenthesis.
+  if (/\breplace\b(?!\s*\()/i.test(sanitized)) {
+    throw new Error("Forbidden SQL operation: REPLACE");
   }
 }

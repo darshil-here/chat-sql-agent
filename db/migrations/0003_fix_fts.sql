@@ -1,7 +1,6 @@
--- Rebuild the FTS index with the columns the retrieval code uses.
--- Migration 0002 created the index with `columns` and `relationships`, but the
--- setup script later rebuilt it by hand with only three columns and left the
--- old triggers pointing at columns that no longer existed.
+-- The FTS index over schema_metadata, plus the triggers that keep it in sync.
+-- Column order is load-bearing: the bm25 weights in lib/sql-rag.ts are
+-- positional and follow the order below.
 
 DROP TRIGGER IF EXISTS schema_metadata_ai;
 --> statement-breakpoint

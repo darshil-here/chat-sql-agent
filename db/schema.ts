@@ -1,11 +1,12 @@
-import { text, integer, real, sqliteTable } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import {
+  integer,
+  real,
+  sqliteTable,
+  text,
+  type SQLiteTable,
+} from "drizzle-orm/sqlite-core";
 
-// ============================================================
-// EXISTING TABLES (9)
-// ============================================================
-
-// companies
 export const companiesTable = sqliteTable("companies", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -14,179 +15,122 @@ export const companiesTable = sqliteTable("companies", {
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// employees
 export const employeesTable = sqliteTable("employees", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   company_id: integer("company_id").references(() => companiesTable.id),
-
   name: text("name").notNull(),
   email: text("email").notNull(),
   department: text("department"),
   role: text("role"),
-
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// customers
 export const customersTable = sqliteTable("customers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   company_id: integer("company_id").references(() => companiesTable.id),
-
   first_name: text("first_name"),
   last_name: text("last_name"),
   email: text("email"),
-
   city: text("city"),
   state: text("state"),
   country: text("country"),
-
   signup_date: text("signup_date"),
-  status: text("status"), // active, inactive, churned
-
+  status: text("status"),
   total_spent: real("total_spent").default(0),
-
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// products
 export const productsTable = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   company_id: integer("company_id").references(() => companiesTable.id),
-
   name: text("name").notNull(),
   category: text("category"),
-
   price: real("price").notNull(),
   stock: integer("stock").default(0),
-
   is_active: integer("is_active").default(1),
-
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// orders
 export const ordersTable = sqliteTable("orders", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   company_id: integer("company_id").references(() => companiesTable.id),
-
   customer_id: integer("customer_id").references(() => customersTable.id),
-
-  order_status: text("order_status"), // completed, pending, refunded
-
+  order_status: text("order_status"),
   payment_status: text("payment_status"),
-
   total_amount: real("total_amount").notNull(),
-
   order_date: text("order_date").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// order_items
 export const orderItemsTable = sqliteTable("order_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   order_id: integer("order_id").references(() => ordersTable.id),
-
   product_id: integer("product_id").references(() => productsTable.id),
-
   quantity: integer("quantity").notNull(),
-
   unit_price: real("unit_price").notNull(),
-
   total_price: real("total_price").notNull(),
 });
 
-// subscriptions
 export const subscriptionsTable = sqliteTable("subscriptions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   customer_id: integer("customer_id").references(() => customersTable.id),
-
   plan_name: text("plan_name"),
-
   monthly_price: real("monthly_price"),
-
-  status: text("status"), // active, canceled, trial
-
+  status: text("status"),
   start_date: text("start_date"),
   end_date: text("end_date"),
-
   renewal_date: text("renewal_date"),
 });
 
-// support_tickets
 export const supportTicketsTable = sqliteTable("support_tickets", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   customer_id: integer("customer_id").references(() => customersTable.id),
-
   subject: text("subject"),
-
-  status: text("status"), // open, closed
-
-  priority: text("priority"), // low, medium, high
-
+  status: text("status"),
+  priority: text("priority"),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// campaigns
 export const campaignsTable = sqliteTable("campaigns", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-
   company_id: integer("company_id").references(() => companiesTable.id),
-
   name: text("name"),
-
-  platform: text("platform"), // google, meta, linkedin
-
+  platform: text("platform"),
   budget: real("budget"),
-
   clicks: integer("clicks"),
   conversions: integer("conversions"),
-
   start_date: text("start_date"),
   end_date: text("end_date"),
 });
 
-// ============================================================
-// NEW TABLES (15)
-// ============================================================
-
-// invoices
 export const invoicesTable = sqliteTable("invoices", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customer_id: integer("customer_id").references(() => customersTable.id),
   invoice_number: text("invoice_number").notNull(),
   amount: real("amount").notNull(),
   tax: real("tax").default(0),
-  status: text("status"), // paid, pending, overdue
+  status: text("status"),
   due_date: text("due_date"),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// payments
 export const paymentsTable = sqliteTable("payments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   invoice_id: integer("invoice_id").references(() => invoicesTable.id),
   amount: real("amount").notNull(),
-  method: text("method"), // card, bank_transfer, cash, paypal
-  status: text("status"), // completed, pending, failed
+  method: text("method"),
+  status: text("status"),
   paid_at: text("paid_at"),
 });
 
-// refunds
 export const refundsTable = sqliteTable("refunds", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   order_id: integer("order_id").references(() => ordersTable.id),
   amount: real("amount").notNull(),
   reason: text("reason"),
-  status: text("status"), // approved, pending, rejected
+  status: text("status"),
   processed_at: text("processed_at"),
 });
 
-// warehouses
 export const warehousesTable = sqliteTable("warehouses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -196,7 +140,6 @@ export const warehousesTable = sqliteTable("warehouses", {
   capacity: integer("capacity"),
 });
 
-// inventory
 export const inventoryTable = sqliteTable("inventory", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   product_id: integer("product_id").references(() => productsTable.id),
@@ -205,29 +148,26 @@ export const inventoryTable = sqliteTable("inventory", {
   reorder_point: integer("reorder_point").default(10),
 });
 
-// reviews
 export const reviewsTable = sqliteTable("reviews", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   product_id: integer("product_id").references(() => productsTable.id),
   customer_id: integer("customer_id").references(() => customersTable.id),
-  rating: integer("rating").notNull(), // 1-5
+  rating: integer("rating").notNull(),
   comment: text("comment"),
   created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// shipments
 export const shipmentsTable = sqliteTable("shipments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   order_id: integer("order_id").references(() => ordersTable.id),
   warehouse_id: integer("warehouse_id").references(() => warehousesTable.id),
   carrier: text("carrier"),
   tracking_number: text("tracking_number"),
-  status: text("status"), // in_transit, delivered, pending, returned
+  status: text("status"),
   shipped_at: text("shipped_at"),
   delivered_at: text("delivered_at"),
 });
 
-// coupons
 export const couponsTable = sqliteTable("coupons", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   code: text("code").notNull(),
@@ -237,16 +177,14 @@ export const couponsTable = sqliteTable("coupons", {
   expires_at: text("expires_at"),
 });
 
-// loyalty_points
 export const loyaltyPointsTable = sqliteTable("loyalty_points", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customer_id: integer("customer_id").references(() => customersTable.id),
   points: integer("points").notNull(),
-  reason: text("reason"), // purchase, referral, bonus, redemption
+  reason: text("reason"),
   earned_at: text("earned_at"),
 });
 
-// vendors
 export const vendorsTable = sqliteTable("vendors", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -256,17 +194,15 @@ export const vendorsTable = sqliteTable("vendors", {
   country: text("country"),
 });
 
-// purchase_orders
 export const purchaseOrdersTable = sqliteTable("purchase_orders", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   vendor_id: integer("vendor_id").references(() => vendorsTable.id),
   company_id: integer("company_id").references(() => companiesTable.id),
   total_amount: real("total_amount").notNull(),
-  status: text("status"), // pending, shipped, received, cancelled
+  status: text("status"),
   order_date: text("order_date"),
 });
 
-// departments
 export const departmentsTable = sqliteTable("departments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   company_id: integer("company_id").references(() => companiesTable.id),
@@ -275,15 +211,15 @@ export const departmentsTable = sqliteTable("departments", {
   budget: real("budget").default(0),
 });
 
-// regions
 export const regionsTable = sqliteTable("regions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   country: text("country"),
-  manager_employee_id: integer("manager_employee_id").references(() => employeesTable.id),
+  manager_employee_id: integer("manager_employee_id").references(
+    () => employeesTable.id,
+  ),
 });
 
-// tax_rates
 export const taxRatesTable = sqliteTable("tax_rates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   region_id: integer("region_id").references(() => regionsTable.id),
@@ -292,11 +228,10 @@ export const taxRatesTable = sqliteTable("tax_rates", {
   description: text("description"),
 });
 
-// shipping_addresses
 export const shippingAddressesTable = sqliteTable("shipping_addresses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customer_id: integer("customer_id").references(() => customersTable.id),
-  label: text("label"), // home, office, etc.
+  label: text("label"),
   street: text("street"),
   city: text("city"),
   state: text("state"),
@@ -305,13 +240,11 @@ export const shippingAddressesTable = sqliteTable("shipping_addresses", {
   is_default: integer("is_default").default(0),
 });
 
-// ============================================================
-// SQL RAG METADATA
-// ============================================================
-
-// Schema metadata for SQL RAG — stores documentation about every table
-// for full-text search retrieval. This is NOT part of the business data;
-// it's used by the RAG system to find relevant tables for user questions.
+/**
+ * FTS source for table retrieval. Not business data: the FTS5 triggers in
+ * db/migrations/0003_fix_fts.sql index this table, and db/catalog.ts is what
+ * gets written into it.
+ */
 export const schemaMetadataTable = sqliteTable("schema_metadata", {
   table_name: text("table_name").primaryKey(),
   description: text("description"),
@@ -320,3 +253,34 @@ export const schemaMetadataTable = sqliteTable("schema_metadata", {
   relationships: text("relationships"),
   example_queries: text("example_queries"),
 });
+
+/**
+ * Parent tables first. Clearing runs in reverse, so children go before the
+ * rows they point at; db/seed.ts inserts in this same order.
+ */
+export const tablesInForeignKeyOrder: SQLiteTable[] = [
+  companiesTable,
+  employeesTable,
+  regionsTable,
+  warehousesTable,
+  vendorsTable,
+  couponsTable,
+  customersTable,
+  departmentsTable,
+  productsTable,
+  ordersTable,
+  orderItemsTable,
+  subscriptionsTable,
+  supportTicketsTable,
+  campaignsTable,
+  invoicesTable,
+  paymentsTable,
+  refundsTable,
+  inventoryTable,
+  reviewsTable,
+  shipmentsTable,
+  loyaltyPointsTable,
+  purchaseOrdersTable,
+  taxRatesTable,
+  shippingAddressesTable,
+];

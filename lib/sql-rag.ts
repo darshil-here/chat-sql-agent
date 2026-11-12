@@ -1,17 +1,13 @@
-import { db } from "@/db/db";
-import { sql } from "drizzle-orm";
+import { getTableDoc, tableCatalog, type TableDoc } from "@/db/catalog";
+import { runReadOnlyQuery } from "@/lib/db-query";
 
-export interface TableSchema {
-  table_name: string;
-  description: string;
-  columns: string;
-  column_types: string;
-  relationships: string;
-  example_queries: string;
-}
+const TOP_TABLES = 5;
+const SAMPLE_ROWS = 3;
+const FTS_CANDIDATES = 12;
+const CELL_MAX_CHARS = 80;
 
-const MAX_DETAILED_TABLES = 5;
-const MAX_SAMPLE_ROWS = 3;
+const EXACT_TABLE_NAME_SCORE = -100;
+const TABLE_NAME_WORD_SCORE = -50;
 
 const STOP_WORDS = new Set([
   "what", "is", "are", "how", "many", "the", "a", "an", "in", "on",
@@ -52,107 +48,78 @@ function singularize(word: string): string {
 function tableNameScore(keyword: string, tableName: string): number | null {
   const word = singularize(keyword);
 
-  if (singularize(tableName) === word) return -100;
+  if (singularize(tableName) === word) return EXACT_TABLE_NAME_SCORE;
 
   const parts = tableName.split("_").map(singularize);
-  if (parts.includes(word)) return -50;
+  if (parts.includes(word)) return TABLE_NAME_WORD_SCORE;
 
   return null;
 }
 
-async function getAllSchemas(): Promise<TableSchema[]> {
-  const rows = await db.all(sql`
-    SELECT table_name, description, columns, column_types, relationships, example_queries
-    FROM schema_metadata
-    ORDER BY table_name
-  `);
-
-  return rows as TableSchema[];
+function keepLowerScore(scores: Map<string, number>, table: string, score: number) {
+  scores.set(table, Math.min(score, scores.get(table) ?? score));
 }
 
-async function getRankedTableNames(
-  question: string,
-  allTables: TableSchema[],
-  topK: number,
-): Promise<string[]> {
+async function getRankedTables(question: string): Promise<TableDoc[]> {
   const keywords = extractKeywords(question);
   if (keywords.length === 0) return [];
 
   const scores = new Map<string, number>();
 
   for (const keyword of keywords) {
-    for (const table of allTables) {
+    for (const table of tableCatalog) {
       const score = tableNameScore(keyword, table.table_name);
-      if (score === null) continue;
-      scores.set(
-        table.table_name,
-        Math.min(score, scores.get(table.table_name) ?? score),
-      );
+      if (score !== null) keepLowerScore(scores, table.table_name, score);
     }
   }
 
   const ftsQuery = keywords.map((keyword) => `${keyword}*`).join(" OR ");
 
-  try {
-    const matches = (await db.all(sql`
-      SELECT
-        table_name,
-        bm25(schema_metadata_fts, 10.0, 5.0, 2.0, 2.0, 1.0) AS score
-      FROM schema_metadata_fts
-      WHERE schema_metadata_fts MATCH ${ftsQuery}
-      ORDER BY score
-      LIMIT 12
-    `)) as { table_name: string; score: number }[];
+  // bm25 weights are positional and follow the FTS column order in
+  // db/migrations/0003_fix_fts.sql: table_name, description, columns,
+  // column_types, example_queries.
+  const { rows } = await runReadOnlyQuery(
+    `SELECT table_name, bm25(schema_metadata_fts, 10.0, 5.0, 2.0, 2.0, 1.0) AS score
+     FROM schema_metadata_fts
+     WHERE schema_metadata_fts MATCH ?
+     ORDER BY score
+     LIMIT ?`,
+    { args: [ftsQuery, FTS_CANDIDATES] },
+  );
 
-    for (const match of matches) {
-      scores.set(
-        match.table_name,
-        Math.min(match.score, scores.get(match.table_name) ?? match.score),
-      );
-    }
-  } catch (error) {
-    console.error("FTS search failed:", error);
+  for (const row of rows) {
+    const tableName = String(row.table_name);
+    const score = Number(row.score);
+    if (!getTableDoc(tableName) || Number.isNaN(score)) continue;
+    keepLowerScore(scores, tableName, score);
   }
 
   return [...scores.entries()]
-    .sort((a, b) => a[1] - b[1])
-    .slice(0, topK)
-    .map(([tableName]) => tableName);
+    .sort(([, a], [, b]) => a - b)
+    .slice(0, TOP_TABLES)
+    .map(([tableName]) => getTableDoc(tableName))
+    .filter((table): table is TableDoc => table !== undefined);
 }
 
-/**
- * Returns the tables that retrieval considers most relevant for a question.
- * Used by the evaluation script.
- */
-export async function getRelevantTableNames(
-  question: string,
-  topK: number = MAX_DETAILED_TABLES,
-): Promise<string[]> {
-  const allTables = await getAllSchemas();
-  return getRankedTableNames(question, allTables, topK);
+/** Table names retrieval would give sample rows to, most relevant first. */
+export async function rankTables(question: string): Promise<string[]> {
+  const tables = await getRankedTables(question);
+  return tables.map((table) => table.table_name);
 }
 
 function formatCell(value: unknown): string {
   const text = value === null || value === undefined ? "NULL" : String(value);
-  return text.replace(/\|/g, "\\|").replace(/\s+/g, " ").slice(0, 80);
+  return text.replace(/\|/g, "\\|").replace(/\s+/g, " ").slice(0, CELL_MAX_CHARS);
 }
 
-async function getSampleRows(
-  tableName: string,
-  limit: number = MAX_SAMPLE_ROWS,
-): Promise<string> {
-  if (!/^[a-z_][a-z0-9_]*$/.test(tableName)) {
-    return "(invalid table name)";
-  }
-
+async function getSampleRows(table: TableDoc): Promise<string> {
   try {
-    const rows = (await db.all(
-      sql.raw(`SELECT * FROM "${tableName}" LIMIT ${limit}`),
-    )) as Record<string, unknown>[];
+    const { columns, rows } = await runReadOnlyQuery(
+      `SELECT * FROM "${table.table_name}" LIMIT ${SAMPLE_ROWS}`,
+    );
 
-    if (rows.length === 0) return "(no data in table)";
+    if (rows.length === 0) return "(no rows in this table)";
 
-    const columns = Object.keys(rows[0]);
     const header = `| ${columns.join(" | ")} |`;
     const separator = `| ${columns.map(() => "---").join(" | ")} |`;
     const body = rows
@@ -162,57 +129,51 @@ async function getSampleRows(
       )
       .join("\n");
 
-    return `${header}\n${separator}\n${body}`;
-  } catch {
-    return "(unable to fetch sample rows)";
+    return [header, separator, body].join("\n");
+  } catch (error) {
+    console.error(`Could not read sample rows from ${table.table_name}:`, error);
+    return "(sample rows unavailable)";
   }
 }
 
 /**
  * Builds the schema context for the system prompt.
  *
- * At 24 tables the full schema costs about 2.6k tokens, which is cheaper than
- * a retrieval miss. Every table is included so the model can always see the
- * join path it needs. FTS and table-name matching decide which tables get
- * sample rows.
+ * Every table is included so the model can always see the join path it needs.
+ * FTS and table-name matching decide which tables also get sample rows.
  */
 export async function getRAGContext(userQuestion: string): Promise<string> {
-  const allTables = await getAllSchemas();
-
-  if (allTables.length === 0) {
-    return "No schema metadata found. Run `npm run db:setup` first.";
+  let rankedTables: TableDoc[] = [];
+  try {
+    rankedTables = await getRankedTables(userQuestion);
+  } catch (error) {
+    console.error(
+      "Table ranking failed; serving the schema without sample rows:",
+      error,
+    );
   }
 
-  const rankedNames = await getRankedTableNames(
-    userQuestion,
-    allTables,
-    MAX_DETAILED_TABLES,
-  );
-  const rankedSet = new Set(rankedNames);
+  const lines: string[] = [
+    "FULL DATABASE SCHEMA",
+    "Every table in the database is listed below.",
+    "",
+  ];
 
-  const lines: string[] = [];
-  lines.push("FULL DATABASE SCHEMA");
-  lines.push("Every table in the database is listed below.");
-  lines.push("");
-
-  for (const table of allTables) {
-    lines.push(`TABLE: ${table.table_name}`);
-    lines.push(`Description: ${table.description}`);
-    lines.push(`Columns: ${table.column_types}`);
-    lines.push(`Relationships: ${table.relationships}`);
-    if (rankedSet.has(table.table_name)) {
-      lines.push("Likely relevant to this question: yes");
-    }
-    lines.push("");
+  for (const table of tableCatalog) {
+    lines.push(
+      `TABLE: ${table.table_name}`,
+      `Description: ${table.description}`,
+      `Columns: ${table.column_types}`,
+      `Relationships: ${table.relationships}`,
+      "",
+    );
   }
 
-  if (rankedNames.length > 0) {
-    lines.push("SAMPLE ROWS FROM LIKELY RELEVANT TABLES");
-    lines.push("");
-    for (const tableName of rankedNames) {
-      lines.push(`TABLE: ${tableName}`);
-      lines.push(await getSampleRows(tableName));
-      lines.push("");
+  if (rankedTables.length > 0) {
+    lines.push("SAMPLE ROWS FROM LIKELY RELEVANT TABLES", "");
+
+    for (const table of rankedTables) {
+      lines.push(`TABLE: ${table.table_name}`, await getSampleRows(table), "");
     }
   }
 
