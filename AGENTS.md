@@ -1,7 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
 
-This version has breaking changes. APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 ## Project: QueryMind
@@ -11,7 +15,7 @@ A natural language to SQL chat app. The model gets the full schema plus FTS-sele
 ### Stack
 
 - Next.js 16 App Router, React 19, Tailwind CSS v4
-- AI SDK 6 with `@openrouter/ai-sdk-provider`
+- AI SDK 7 with `@openrouter/ai-sdk-provider`
 - Model: `nvidia/nemotron-3.5-super-vl:free` in `app/api/chat/route.ts`
 - Turso (libSQL) with Drizzle ORM
 - Retrieval: SQLite FTS5 over `schema_metadata`, no embeddings

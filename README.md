@@ -81,7 +81,7 @@ npm run test:guard
 
 ## Getting started
 
-You need Node.js 20.9 or newer, a [Turso](https://turso.tech) database, and an [OpenRouter](https://openrouter.ai/keys) API key.
+You need Node.js 24.22.2 (Node 24 LTS, see `.nvmrc`), a [Turso](https://turso.tech) database, and an [OpenRouter](https://openrouter.ai/keys) API key.
 
 ```bash
 git clone https://github.com/darshil-here/chat-sql-agent.git

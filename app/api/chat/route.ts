@@ -4,7 +4,7 @@ import {
   UIMessage,
   convertToModelMessages,
   tool,
-  stepCountIs,
+  isStepCount,
 } from "ai";
 import z from "zod";
 import { db } from "@/db/db";
@@ -201,8 +201,8 @@ export async function POST(req: Request) {
     const result = streamText({
       model: openrouter("nvidia/nemotron-3.5-super-vl:free"),
       messages: await convertToModelMessages(messages),
-      system: DRY_RUN_PROMPT,
-      stopWhen: stepCountIs(1),
+      instructions: DRY_RUN_PROMPT,
+      stopWhen: isStepCount(1),
     });
 
     return result.toUIMessageStreamResponse();
@@ -212,8 +212,8 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openrouter("nvidia/nemotron-3.5-super-vl:free"),
     messages: await convertToModelMessages(messages),
-    system: SYSTEM_PROMPT,
-    stopWhen: stepCountIs(10),
+    instructions: SYSTEM_PROMPT,
+    stopWhen: isStepCount(10),
     tools: {
       db: tool({
         description:
