@@ -6,7 +6,7 @@ import { cn } from "@/components/ui/utils";
 import { CopyButton } from "./copy-button";
 
 const FONT_STACK =
-  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+  "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
 
 export function CodeBlock({
   code,
@@ -19,13 +19,18 @@ export function CodeBlock({
 }) {
   return (
     <div
-      className={cn(
-        "overflow-hidden rounded-lg border border-border-subtle",
-        className,
-      )}
+      className={cn("overflow-hidden rounded-xl border", className)}
+      style={{
+        borderColor: "var(--code-border)",
+        backgroundColor: "var(--code-surface)",
+        boxShadow: "0 1px 0 0 rgba(255,255,255,0.04) inset",
+      }}
     >
-      <div className="flex items-center justify-between border-b border-border-subtle bg-elevated px-3 py-1.5">
-        <span className="font-mono text-[11px] uppercase tracking-wide text-text-muted">
+      <div
+        className="flex items-center justify-between gap-2 border-b px-3 py-1.5"
+        style={{ borderColor: "var(--code-border)" }}
+      >
+        <span className="font-mono text-[10.5px] tracking-[0.08em] text-white/40 uppercase">
           {language}
         </span>
         <CopyButton text={code} />
@@ -33,14 +38,15 @@ export function CodeBlock({
       <SyntaxHighlighter
         language={language}
         style={oneDark}
+        wrapLongLines
         customStyle={{
           margin: 0,
           borderRadius: 0,
-          fontSize: "13px",
-          lineHeight: "1.5",
+          fontSize: "12.5px",
+          lineHeight: "1.65",
           padding: "12px 14px",
+          background: "transparent",
           overflowX: "auto",
-          background: "#0d0b0c",
         }}
         codeTagProps={{ style: { fontFamily: FONT_STACK } }}
       >
