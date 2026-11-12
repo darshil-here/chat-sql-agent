@@ -3,6 +3,7 @@
 import { Database, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
+import { version } from "@/package.json"
 
 export function TopBar() {
   const { theme, toggleTheme } = useTheme()
@@ -14,7 +15,7 @@ export function TopBar() {
         <span className="text-sm font-medium text-text-primary">QueryMind</span>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-xs text-text-muted">v0.1.0</span>
+        <span className="text-xs text-text-muted">v{version}</span>
         <Button
           variant="ghost"
           size="icon"

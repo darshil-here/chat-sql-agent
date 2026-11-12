@@ -1,42 +1,38 @@
-"use client"
+"use client";
 
-import { memo } from "react"
-import { User, Bot, SquareActivity } from "lucide-react"
-import { cn } from "@/components/ui/utils"
+import { Bot, SquareActivity, User } from "lucide-react";
+import { cn } from "@/components/ui/utils";
 
-interface MessageBubbleProps {
-  role: "user" | "assistant" | "system"
-  children: React.ReactNode
-}
+const APPEARANCE = {
+  user: { icon: User, bubble: "bg-elevated text-text-primary" },
+  assistant: { icon: Bot, bubble: "bg-panel text-text-primary" },
+  system: { icon: SquareActivity, bubble: "bg-panel text-text-muted italic" },
+} as const;
 
-export const MessageBubble = memo(({ role, children }: MessageBubbleProps) => {
+export function MessageBubble({
+  role,
+  children,
+}: {
+  role: keyof typeof APPEARANCE;
+  children: React.ReactNode;
+}) {
+  const { icon: Icon, bubble } = APPEARANCE[role];
+
   return (
-    <div className="flex items-start gap-3 max-w-full">
-      <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-elevated">
-        {role === "user" ? (
-          <User className="size-4 text-text-secondary" />
-        ) : role === "assistant" ? (
-          <Bot className="size-4 text-text-secondary" />
-        ) : (
-          <SquareActivity className="size-4 text-text-secondary" />
-        )}
+    <div className="flex max-w-full items-start gap-3">
+      <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-elevated">
+        <Icon className="size-4 text-text-secondary" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div
           className={cn(
-            "rounded-lg p-3 max-w-full text-sm leading-relaxed",
-            role === "user"
-              ? "bg-elevated text-text-primary"
-              : role === "system"
-              ? "bg-panel text-text-muted italic"
-              : "bg-panel text-text-primary"
+            "max-w-full rounded-lg p-3 text-sm leading-relaxed",
+            bubble,
           )}
         >
           {children}
         </div>
       </div>
     </div>
-  )
-})
-
-MessageBubble.displayName = "MessageBubble"
+  );
+}

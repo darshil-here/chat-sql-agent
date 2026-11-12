@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   createContext,
@@ -7,61 +7,64 @@ import {
   useEffect,
   useMemo,
   useSyncExternalStore,
-} from "react"
+} from "react";
 
-type Theme = "dark" | "light"
+type Theme = "dark" | "light";
 
-interface ThemeContextType {
-  theme: Theme
-  toggleTheme: () => void
+const STORAGE_KEY = "theme";
+const DEFAULT_THEME: Theme = "dark";
+const listeners = new Set<() => void>();
+
+interface ThemeContextValue {
+  theme: Theme;
+  toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: "dark",
-  toggleTheme: () => {},
-})
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function subscribe(callback: () => void) {
-  window.addEventListener("storage", callback)
-  return () => window.removeEventListener("storage", callback)
+function readTheme(): Theme {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved === "light" || saved === "dark" ? saved : DEFAULT_THEME;
 }
 
-function getSnapshot(): Theme {
-  const saved = localStorage.getItem("theme")
-  return saved === "light" || saved === "dark" ? saved : "dark"
+function getServerTheme(): Theme {
+  return DEFAULT_THEME;
 }
 
-function getServerSnapshot(): Theme {
-  return "dark"
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+function writeTheme(theme: Theme) {
+  localStorage.setItem(STORAGE_KEY, theme);
+  for (const listener of listeners) listener();
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  )
+  const theme = useSyncExternalStore(subscribe, readTheme, getServerTheme);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark")
-  }, [theme])
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    const next = theme === "dark" ? "light" : "dark"
-    localStorage.setItem("theme", next)
-    window.dispatchEvent(new StorageEvent("storage"))
-  }, [theme])
+    writeTheme(readTheme() === "dark" ? "light" : "dark");
+  }, []);
 
-  const value = useMemo(
-    () => ({ theme, toggleTheme }),
-    [theme, toggleTheme],
-  )
+  const value = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme]);
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-export const useTheme = () => useContext(ThemeContext)
+export function useTheme(): ThemeContextValue {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used inside ThemeProvider.");
+  }
+  return context;
+}

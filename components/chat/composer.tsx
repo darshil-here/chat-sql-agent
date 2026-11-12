@@ -1,113 +1,105 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUp, FlaskConical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/components/ui/utils";
 
 interface ComposerProps {
   onSubmit: (message: string) => void;
-  disabled?: boolean;
-  isLoading?: boolean;
-  isInitializing?: boolean;
-  error?: string | null;
-  dryRun?: boolean;
-  onToggleDryRun?: () => void;
+  isLoading: boolean;
+  error: string | null;
+  dryRun: boolean;
+  onToggleDryRun: () => void;
 }
 
 export function Composer({
   onSubmit,
-  disabled = false,
-  isLoading = false,
-  isInitializing = false,
-  error = null,
-  dryRun = false,
+  isLoading,
+  error,
+  dryRun,
   onToggleDryRun,
 }: ComposerProps) {
+  const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = "auto";
-    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-  }, [disabled]);
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [value]);
 
-  const handleSubmit = useCallback(() => {
-    const value = textareaRef.current?.value.trim();
-    if (!value || disabled) return;
+  function submit() {
+    const message = value.trim();
+    if (!message || isLoading) return;
 
-    onSubmit(value);
-
-    if (textareaRef.current) {
-      textareaRef.current.value = "";
-      textareaRef.current.style.height = "auto";
-    }
-  }, [onSubmit, disabled]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSubmit();
-      }
-    },
-    [handleSubmit],
-  );
+    onSubmit(message);
+    setValue("");
+  }
 
   return (
     <div className="flex justify-center p-4">
       <div className="w-full max-w-3xl">
         {error && (
-          <div className="mb-2 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
+          <div className="mb-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-400">
             {error}
           </div>
         )}
         {dryRun && (
-          <div className="mb-2 px-3 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs text-center">
+          <div className="mb-2 rounded-md border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-center text-xs text-blue-400">
             Dry Run mode active. Only SQL will be shown, nothing runs.
           </div>
         )}
-        <div className="flex items-end gap-2 bg-composer border border-border-subtle rounded-lg p-3 shadow-soft">
+        <div className="flex items-end gap-2 rounded-lg border border-border-subtle bg-composer p-3 shadow-soft">
           <Textarea
             ref={textareaRef}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit();
+              }
+            }}
             rows={1}
             placeholder="Ask about your database..."
-            disabled={disabled || isInitializing}
-            className="flex-1 min-h-[40px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
-            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            className="max-h-[200px] min-h-[40px] flex-1 resize-none border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
-          {onToggleDryRun && (
-            <Button
-              type="button"
-              size="icon"
-              variant={dryRun ? "default" : "outline"}
-              onClick={onToggleDryRun}
-              disabled={isInitializing}
-              className={`shrink-0 rounded-full cursor-pointer ${dryRun ? "bg-blue-500 hover:bg-blue-600 text-white" : ""}`}
-              title="Toggle Dry Run mode"
-            >
-              <FlaskConical className="size-4" />
-            </Button>
-          )}
           <Button
             type="button"
             size="icon"
-            disabled={disabled || isInitializing}
-            onClick={handleSubmit}
-            className="shrink-0 rounded-full cursor-pointer"
+            variant={dryRun ? "default" : "outline"}
+            onClick={onToggleDryRun}
+            className={cn(
+              "shrink-0 cursor-pointer rounded-full",
+              dryRun && "bg-blue-500 text-white hover:bg-blue-600",
+            )}
+            aria-label="Toggle Dry Run mode"
+            title="Toggle Dry Run mode"
+          >
+            <FlaskConical className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            disabled={isLoading}
+            onClick={submit}
+            className="shrink-0 cursor-pointer rounded-full"
+            aria-label="Send message"
           >
             {isLoading ? (
-              <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             ) : (
               <ArrowUp className="size-4" />
             )}
           </Button>
         </div>
-        <div className="flex items-center justify-center mt-2">
-          <span className="text-xs text-text-muted">
-            Press Enter to send, Shift+Enter for new line
-          </span>
-        </div>
+        <p className="mt-2 text-center text-xs text-text-muted">
+          Press Enter to send, Shift+Enter for new line
+        </p>
       </div>
     </div>
   );

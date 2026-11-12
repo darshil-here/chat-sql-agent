@@ -14,11 +14,9 @@
   --text-muted: #737373;
 
   --border-subtle: rgba(0, 0, 0, 0.10);
-  --border-strong: rgba(0, 0, 0, 0.16);
 
   --accent-positive: #22c55e;
   --accent-focus: #6b7280;
-  --accent-warning: #eab308;
   --accent-danger: #ef4444;
 
   --shadow-soft-value: 0 10px 30px rgba(0, 0, 0, 0.10);
@@ -43,11 +41,9 @@
   --text-muted: #7d787c;
 
   --border-subtle: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.16);
 
   --accent-positive: #32d74b;
   --accent-focus: #8a8f98;
-  --accent-warning: #f4bf4f;
   --accent-danger: #ff6b6b;
 
   --shadow-soft-value: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -68,10 +64,8 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-border-subtle: var(--border-subtle);
-  --color-border-strong: var(--border-strong);
   --color-accent-positive: var(--accent-positive);
   --color-accent-focus: var(--accent-focus);
-  --color-accent-warning: var(--accent-warning);
   --color-accent-danger: var(--accent-danger);
   --color-accent-brand: var(--accent-brand);
   --shadow-soft: var(--shadow-soft-value);
@@ -94,29 +88,8 @@ body {
   color: var(--selection-text) !important;
 }
 
-::-moz-selection {
-  background: var(--selection-bg);
-  color: var(--selection-text) !important;
-}
-
 ::placeholder {
   color: var(--text-muted);
-}
-
-input::selection,
-textarea::selection,
-button::selection,
-[role="button"]::selection {
-  background: var(--selection-bg);
-  color: var(--selection-text) !important;
-}
-
-input::-moz-selection,
-textarea::-moz-selection,
-button::-moz-selection,
-[role="button"]::-moz-selection {
-  background: var(--selection-bg);
-  color: var(--selection-text) !important;
 }
 
 /* ── Landing Page Design Tokens ── */
@@ -140,16 +113,6 @@ button::-moz-selection,
 @keyframes border-spin {
   to {
     rotate: 360deg;
-  }
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
   }
 }
 

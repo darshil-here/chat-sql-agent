@@ -23,9 +23,7 @@ Dark mode is the `.dark` class on `<html>`. `components/theme-provider.tsx` togg
 | `--text-secondary` | `#525252` | `#a7a2a6` | `text-text-secondary` |
 | `--text-muted` | `#737373` | `#7d787c` | `text-text-muted` |
 | `--border-subtle` | `rgba(0,0,0,0.10)` | `rgba(255,255,255,0.10)` | `border-border-subtle` |
-| `--border-strong` | `rgba(0,0,0,0.16)` | `rgba(255,255,255,0.16)` | `border-border-strong` |
 | `--accent-positive` | `#22c55e` | `#32d74b` | `text-accent-positive` |
-| `--accent-warning` | `#eab308` | `#f4bf4f` | `text-accent-warning` |
 | `--accent-danger` | `#ef4444` | `#ff6b6b` | `text-accent-danger` |
 | `--accent-focus` | `#6b7280` | `#8a8f98` | `border-accent-focus`, `ring-accent-focus` |
 | `--accent-brand` | `#4d7c0f` | `#bbf746` | `text-accent-brand`, `bg-accent-brand` |
