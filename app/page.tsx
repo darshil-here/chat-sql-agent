@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { LandingLink } from "@/components/landing/landing-link";
 import {
   Sparkles,
   ArrowRight,
@@ -135,14 +135,7 @@ export default function QueryMindLanding() {
               <button
                 key={s.id}
                 onClick={() => scrollTo(s.id)}
-                className="text-sm px-3 py-2 rounded-lg transition-colors"
-                style={{ color: "var(--lp-text-secondary)" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = "var(--lp-text-on-dark)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "var(--lp-text-secondary)")
-                }
+                className="text-sm px-3 py-2 rounded-lg text-[var(--lp-text-secondary)] hover:text-[var(--lp-text-on-dark)] transition-colors"
               >
                 {s.label}
               </button>
@@ -151,25 +144,10 @@ export default function QueryMindLanding() {
 
           {/* Desktop right */}
           <div className="hidden sm:flex items-center gap-3">
-            <Link
-              href={GITHUB_URL}
-              target="_blank"
-              className="btn-shiny inline-flex items-center gap-1.5 text-sm font-medium px-5 py-2.5 rounded-xl transition-all duration-300 relative"
-              style={{
-                backgroundColor: "var(--lp-primary)",
-                color: "var(--lp-badge-text)",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  "var(--lp-primary-hover)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "var(--lp-primary)")
-              }
-            >
+            <LandingLink href={GITHUB_URL} size="sm">
               View on GitHub
               <ArrowRight size={16} />
-            </Link>
+            </LandingLink>
           </div>
 
           {/* Mobile hamburger */}
@@ -203,19 +181,15 @@ export default function QueryMindLanding() {
               </button>
             ))}
             <div className="pt-2 flex flex-col gap-2">
-              <Link
+              <LandingLink
                 href={GITHUB_URL}
-                target="_blank"
-                className="btn-shiny inline-flex items-center justify-center gap-1.5 text-sm font-medium px-5 py-2.5 rounded-xl transition-all duration-300 relative"
-                style={{
-                  backgroundColor: "var(--lp-primary)",
-                  color: "var(--lp-badge-text)",
-                }}
+                size="sm"
+                className="w-full justify-center"
                 onClick={() => setMenuOpen(false)}
               >
                 View on GitHub
                 <ArrowRight size={16} />
-              </Link>
+              </LandingLink>
             </div>
           </div>
         )}
@@ -267,42 +241,13 @@ export default function QueryMindLanding() {
           {/* CTAs */}
           <ScrollReveal>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-              <Link
-                href="/chat"
-                className="btn-shiny inline-flex items-center gap-2 text-base font-medium px-6 py-3.5 rounded-xl transition-all duration-300 relative"
-                style={{
-                  backgroundColor: "var(--lp-primary)",
-                  color: "var(--lp-badge-text)",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    "var(--lp-primary-hover)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "var(--lp-primary)")
-                }
-              >
+              <LandingLink href="/chat">
                 Try the Live Demo
                 <ArrowRight size={18} />
-              </Link>
-              <Link
-                href={GITHUB_URL}
-                target="_blank"
-                className="inline-flex items-center gap-2 text-base font-medium px-6 py-3.5 rounded-xl transition-all duration-300"
-                style={{
-                  backgroundColor: "transparent",
-                  border: "1px solid var(--lp-border-dark)",
-                  color: "var(--lp-text-on-dark)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--lp-text-on-dark)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--lp-border-dark)";
-                }}
-              >
+              </LandingLink>
+              <LandingLink href={GITHUB_URL} variant="outline">
                 View on GitHub
-              </Link>
+              </LandingLink>
             </div>
           </ScrollReveal>
 
@@ -428,17 +373,11 @@ WHERE signup_date >= date('now', 'start of month')`}
             {features.map((f, i) => (
               <ScrollReveal key={i}>
                 <div
-                  className="rounded-xl p-6 md:p-8 transition-all duration-300"
+                  className="rounded-xl p-6 md:p-8 transition-transform duration-300 hover:-translate-y-1"
                   style={{
                     backgroundColor: "var(--lp-card-surface)",
                     border: "1px solid var(--lp-border-dark)",
                     boxShadow: "var(--lp-shadow-card)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-4px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   <div
@@ -574,44 +513,13 @@ WHERE signup_date >= date('now', 'start of month')`}
                 </span>
               </h2>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/chat"
-                  className="btn-shiny inline-flex items-center gap-2 text-base font-medium px-6 py-3.5 rounded-xl transition-all duration-300 relative"
-                  style={{
-                    backgroundColor: "var(--lp-primary)",
-                    color: "var(--lp-badge-text)",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      "var(--lp-primary-hover)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      "var(--lp-primary)")
-                  }
-                >
+                <LandingLink href="/chat">
                   Try the Live Demo
                   <ArrowRight size={18} />
-                </Link>
-                <Link
-                  href={GITHUB_URL}
-                  target="_blank"
-                  className="inline-flex items-center gap-2 text-base font-medium px-6 py-3.5 rounded-xl transition-all duration-300"
-                  style={{
-                    backgroundColor: "transparent",
-                    border: "1px solid var(--lp-border-dark)",
-                    color: "var(--lp-text-on-dark)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--lp-text-on-dark)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--lp-border-dark)";
-                  }}
-                >
+                </LandingLink>
+                <LandingLink href={GITHUB_URL} variant="outline">
                   View Source on GitHub
-                </Link>
+                </LandingLink>
               </div>
             </div>
           </ScrollReveal>
@@ -637,34 +545,13 @@ WHERE signup_date >= date('now', 'start of month')`}
           >
             <p>Built by Darshil Prajapati &middot; 2026</p>
             <div className="flex items-center gap-4">
-              <Link
-                href={GITHUB_URL}
-                target="_blank"
-                className="transition-colors"
-                style={{ color: "var(--lp-text-muted)" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = "var(--lp-text-on-dark)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "var(--lp-text-muted)")
-                }
-              >
+              <LandingLink href={GITHUB_URL} variant="muted" size="plain">
                 GitHub
-              </Link>
+              </LandingLink>
               <span>&middot;</span>
-              <Link
-                href="/chat"
-                className="transition-colors"
-                style={{ color: "var(--lp-text-muted)" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.color = "var(--lp-text-on-dark)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "var(--lp-text-muted)")
-                }
-              >
+              <LandingLink href="/chat" variant="muted" size="plain">
                 Open app
-              </Link>
+              </LandingLink>
             </div>
           </div>
         </div>
