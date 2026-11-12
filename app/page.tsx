@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LandingLink } from "@/components/landing/landing-link";
+import { cn } from "@/components/ui/utils";
 import {
   Sparkles,
   ArrowRight,
@@ -13,6 +14,7 @@ import {
   Plug,
   MessageCircle,
   CheckCircle,
+  ChevronRight,
 } from "lucide-react";
 
 const GITHUB_URL = "https://github.com/darshil-here/chat-sql-agent";
@@ -81,11 +83,54 @@ function useScrollReveal() {
   return ref;
 }
 
-function ScrollReveal({ children }: { children: React.ReactNode }) {
+function ScrollReveal({
+  children,
+  delay = 0,
+  className,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
   const ref = useScrollReveal();
   return (
-    <div ref={ref} className="scroll-reveal">
+    <div
+      ref={ref}
+      className={cn("scroll-reveal", className)}
+      style={{ "--reveal-delay": `${delay}ms` } as React.CSSProperties}
+    >
       {children}
+    </div>
+  );
+}
+
+function SectionHeading({
+  title,
+  description,
+  className,
+}: {
+  title: string;
+  description: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-14 text-center md:mb-16", className)}>
+      <ScrollReveal>
+        <h2
+          className="text-[28px] leading-[1.15] font-semibold tracking-[-0.02em] text-balance sm:text-[36px]"
+          style={{ color: "var(--lp-text-on-dark)" }}
+        >
+          {title}
+        </h2>
+      </ScrollReveal>
+      <ScrollReveal delay={70}>
+        <p
+          className="mx-auto mt-4 max-w-[520px] text-[15px] leading-relaxed text-pretty"
+          style={{ color: "var(--lp-text-secondary)" }}
+        >
+          {description}
+        </p>
+      </ScrollReveal>
     </div>
   );
 }
@@ -96,7 +141,9 @@ export default function QueryMindLanding() {
   const scrollTo = (id: string) => {
     setMenuOpen(false);
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
   };
 
   return (
@@ -108,34 +155,45 @@ export default function QueryMindLanding() {
         fontFamily: "var(--font-inter), sans-serif",
       }}
     >
+      {/* Section reveals are JS-driven; without it, show everything. */}
+      <noscript>
+        <style>{`.scroll-reveal{opacity:1;transform:none}`}</style>
+      </noscript>
       {/* ──────────────────────── */}
       {/* 1. NAVIGATION BAR        */}
       {/* ──────────────────────── */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50"
+        className="fixed top-0 right-0 left-0 z-50 border-b backdrop-blur-xl backdrop-saturate-150"
         style={{
-          backgroundColor: "var(--lp-bg)",
-          borderBottom: "1px solid var(--lp-border-dark)",
+          backgroundColor: "var(--lp-nav)",
+          borderColor: "var(--lp-border-dark)",
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 sm:px-12 lg:px-16 py-4">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 sm:px-12 lg:px-16">
           {/* Logo */}
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center gap-2 text-lg font-semibold tracking-tight"
+            className="group flex cursor-pointer items-center gap-2 rounded-lg text-lg font-semibold tracking-[-0.01em] transition-transform duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-primary)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--lp-bg)] active:scale-[0.98]"
             style={{ color: "var(--lp-text-on-dark)" }}
+            aria-label="QueryMind home"
           >
-            <Sparkles size={20} style={{ color: "var(--lp-primary)" }} />
+            <Sparkles
+              size={20}
+              strokeWidth={2}
+              className="transition-transform duration-200 ease-[var(--lp-ease-out)] group-hover:rotate-12"
+              style={{ color: "var(--lp-primary)" }}
+            />
             QueryMind
           </button>
 
           {/* Desktop center links */}
-          <div className="hidden sm:flex items-center gap-1">
+          <div className="hidden items-center gap-1 sm:flex">
             {sections.map((s) => (
               <button
                 key={s.id}
                 onClick={() => scrollTo(s.id)}
-                className="text-sm px-3 py-2 rounded-lg text-[var(--lp-text-secondary)] hover:text-[var(--lp-text-on-dark)] transition-colors"
+                className="cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors duration-150 ease-out outline-none hover:bg-white/[0.05] hover:text-[var(--lp-text-on-dark)] focus-visible:ring-2 focus-visible:ring-[var(--lp-primary)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--lp-bg)]"
+                style={{ color: "var(--lp-text-secondary)" }}
               >
                 {s.label}
               </button>
@@ -143,84 +201,109 @@ export default function QueryMindLanding() {
           </div>
 
           {/* Desktop right */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden items-center gap-3 sm:flex">
             <LandingLink href={GITHUB_URL} size="sm">
               View on GitHub
-              <ArrowRight size={16} />
+              <ArrowRight size={15} />
             </LandingLink>
           </div>
 
           {/* Mobile hamburger */}
           <button
-            className="sm:hidden p-2 rounded-lg"
+            className="cursor-pointer rounded-lg p-2 transition-colors duration-150 outline-none hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-[var(--lp-primary)] active:scale-95 sm:hidden"
             style={{ color: "var(--lp-text-on-dark)" }}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
           >
-            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div
-            className="sm:hidden px-6 pb-4 space-y-2"
-            style={{
-              backgroundColor: "var(--lp-bg)",
-              borderBottom: "1px solid var(--lp-border-dark)",
-            }}
-          >
-            {sections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo(s.id)}
-                className="block w-full text-left text-sm px-3 py-2.5 rounded-lg transition-colors"
-                style={{ color: "var(--lp-text-secondary)" }}
-              >
-                {s.label}
-              </button>
-            ))}
-            <div className="pt-2 flex flex-col gap-2">
-              <LandingLink
-                href={GITHUB_URL}
-                size="sm"
-                className="w-full justify-center"
-                onClick={() => setMenuOpen(false)}
-              >
-                View on GitHub
-                <ArrowRight size={16} />
-              </LandingLink>
+        {/* Mobile menu — grid-rows keeps it animatable both ways. */}
+        <div
+          id="mobile-menu"
+          aria-hidden={!menuOpen}
+          inert={!menuOpen}
+          className={cn(
+            "grid overflow-hidden border-t transition-[grid-template-rows,opacity] duration-200 ease-out sm:hidden",
+            menuOpen
+              ? "grid-rows-[1fr] opacity-100"
+              : "pointer-events-none grid-rows-[0fr] opacity-0",
+          )}
+          style={{
+            backgroundColor: "var(--lp-nav-solid)",
+            borderColor: menuOpen ? "var(--lp-border-dark)" : "transparent",
+          }}
+        >
+          <div className="min-h-0">
+            <div className="space-y-1 px-6 pt-3 pb-5">
+              {sections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollTo(s.id)}
+                  className="block w-full cursor-pointer rounded-lg px-3 py-2.5 text-left text-sm transition-colors duration-150 outline-none hover:bg-white/[0.05] hover:text-[var(--lp-text-on-dark)] focus-visible:ring-2 focus-visible:ring-[var(--lp-primary)]"
+                  style={{ color: "var(--lp-text-secondary)" }}
+                >
+                  {s.label}
+                </button>
+              ))}
+              <div className="flex flex-col gap-2 pt-3">
+                <LandingLink
+                  href={GITHUB_URL}
+                  size="sm"
+                  className="w-full justify-center"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  View on GitHub
+                  <ArrowRight size={15} />
+                </LandingLink>
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </nav>
 
       {/* ──────────────────────── */}
       {/* 2. HERO SECTION          */}
       {/* ──────────────────────── */}
-      <section className="pt-28 pb-16 md:pt-36 md:pb-24 px-6 text-center relative overflow-hidden">
+      <section className="relative overflow-hidden px-6 pt-32 pb-20 text-center md:pt-40 md:pb-28">
         {/* Background glow */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          aria-hidden
+          className="pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{
-            width: "700px",
-            height: "700px",
+            width: "900px",
+            height: "900px",
             background:
-              "radial-gradient(circle, rgba(187,247,70,0.08) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(187,247,70,0.09) 0%, rgba(187,247,70,0.03) 40%, transparent 68%)",
+          }}
+        />
+        {/* Hairline that fades in from the nav */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{
+            background:
+              "linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent)",
           }}
         />
 
-        <div className="relative z-10 max-w-6xl mx-auto">
+        <div className="relative z-10 mx-auto max-w-6xl">
           {/* Headline */}
           <ScrollReveal>
             <h1
-              className="text-4xl sm:text-5xl lg:text-[48px] font-semibold leading-[1.1] tracking-tight max-w-4xl mx-auto mb-6"
+              className="mx-auto mb-6 max-w-[860px] text-[40px] leading-[1.05] font-semibold tracking-[-0.035em] text-balance sm:text-[56px] lg:text-[64px]"
               style={{ color: "var(--lp-text-on-dark)" }}
             >
               Talk to the data.
               <br />
               Get{" "}
-              <span className="italic" style={{ color: "var(--lp-primary)" }}>
+              <span
+                className="mr-[0.08em] italic"
+                style={{ color: "var(--lp-primary)" }}
+              >
                 real
               </span>{" "}
               answers, instantly.
@@ -228,113 +311,158 @@ export default function QueryMindLanding() {
           </ScrollReveal>
 
           {/* Sub-headline */}
-          <ScrollReveal>
+          <ScrollReveal delay={70}>
             <p
-              className="text-base max-w-[520px] mx-auto mb-10 leading-relaxed"
+              className="mx-auto mb-10 max-w-[520px] text-[15px] leading-[1.7] text-pretty sm:text-base"
               style={{ color: "var(--lp-text-secondary)" }}
             >
-              QueryMind connects to a seeded SQLite database and lets anyone
-              ask data questions in plain English. No SQL needed.
+              QueryMind connects to a seeded SQLite database and lets anyone ask
+              data questions in plain English. No SQL needed.
             </p>
           </ScrollReveal>
 
           {/* CTAs */}
-          <ScrollReveal>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-              <LandingLink href="/chat">
+          <ScrollReveal delay={140}>
+            <div className="mb-16 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+              <LandingLink href="/chat" className="w-full sm:w-auto">
                 Try the Live Demo
-                <ArrowRight size={18} />
+                <ArrowRight size={17} />
               </LandingLink>
-              <LandingLink href={GITHUB_URL} variant="outline">
+              <LandingLink
+                href={GITHUB_URL}
+                variant="outline"
+                className="w-full justify-center sm:w-auto"
+              >
                 View on GitHub
               </LandingLink>
             </div>
           </ScrollReveal>
 
-          {/* Mock Chat UI */}
-          <ScrollReveal>
-            <div
-              className="max-w-xl mx-auto text-left rounded-xl overflow-hidden"
-              style={{
-                backgroundColor: "var(--lp-card-surface)",
-                boxShadow: "var(--lp-shadow-card)",
-                border: "1px solid var(--lp-border-dark)",
-              }}
-            >
-              {/* Mock chat header */}
+          {/* Mock Chat UI — same composition as the real chat page:
+              user on the right, answer plus the query it ran below. */}
+          <ScrollReveal delay={210}>
+            <div className="relative mx-auto max-w-[560px] text-left">
               <div
-                className="flex items-center gap-2 px-4 py-3 border-b"
-                style={{ borderColor: "var(--lp-border-dark)" }}
+                aria-hidden
+                className="pointer-events-none absolute -inset-x-16 top-4 bottom-8 -z-10"
+                style={{
+                  background:
+                    "radial-gradient(55% 60% at 50% 70%, rgba(187,247,70,0.10), transparent 72%)",
+                }}
+              />
+
+              {/* Outer ring: 16px radius, 6px inset → 10px inner radius. */}
+              <div
+                className="rounded-2xl p-1.5"
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.01))",
+                  boxShadow: "var(--lp-shadow-card)",
+                }}
               >
-                <Sparkles size={16} style={{ color: "var(--lp-primary)" }} />
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: "var(--lp-text-on-dark)" }}
+                <div
+                  className="overflow-hidden rounded-[10px]"
+                  style={{
+                    backgroundColor: "var(--lp-card-surface)",
+                    border: "1px solid var(--lp-border-dark)",
+                  }}
                 >
-                  QueryMind
-                </span>
-              </div>
-
-              <div className="p-4 space-y-4">
-                {/* User message */}
-                <div className="flex justify-end">
+                  {/* Mock chat header */}
                   <div
-                    className="max-w-[80%] text-sm rounded-xl px-4 py-2.5"
+                    className="flex items-center justify-between border-b px-4 py-2.5"
                     style={{
-                      backgroundColor: "var(--lp-primary)",
-                      color: "var(--lp-badge-text)",
-                      borderRadius: "12px 12px 4px 12px",
+                      borderColor: "var(--lp-border-dark)",
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,0.03), transparent)",
                     }}
                   >
-                    How many new customers signed up this month?
-                  </div>
-                </div>
-
-                {/* AI response */}
-                <div className="flex justify-start">
-                  <div
-                    className="max-w-[85%] text-sm rounded-xl px-4 py-3 space-y-2"
-                    style={{
-                      backgroundColor: "var(--lp-bg)",
-                      border: "1px solid var(--lp-border-dark)",
-                      borderRadius: "12px 12px 12px 4px",
-                    }}
-                  >
-                    <p style={{ color: "var(--lp-text-on-dark)" }}>
-                      There were <strong>128 new customers</strong> this month.
-                      That&apos;s up 18% from last month.
+                    <div className="flex items-center gap-2">
+                      <Sparkles
+                        size={14}
+                        style={{ color: "var(--lp-primary)" }}
+                      />
                       <span
-                        className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse"
+                        className="text-[13px] font-medium"
+                        style={{ color: "var(--lp-text-on-dark)" }}
+                      >
+                        QueryMind
+                      </span>
+                    </div>
+                    <span
+                      className="rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase"
+                      style={{
+                        borderColor: "var(--lp-border-dark)",
+                        color: "var(--lp-text-muted)",
+                      }}
+                    >
+                      SQLite
+                    </span>
+                  </div>
+
+                  <div className="space-y-3.5 p-4">
+                    {/* User message */}
+                    <div className="flex justify-end">
+                      <div
+                        className="max-w-[82%] px-3.5 py-2.5 text-[13px] leading-snug"
                         style={{
                           backgroundColor: "var(--lp-primary)",
+                          color: "var(--lp-badge-text)",
+                          borderRadius: "14px 14px 4px 14px",
                         }}
-                      />
-                    </p>
+                      >
+                        How many new customers signed up this month?
+                      </div>
+                    </div>
 
-                    {/* Collapsible SQL */}
-                    <details className="group">
-                      <summary
-                        className="text-xs cursor-pointer list-none flex items-center gap-1"
-                        style={{ color: "var(--lp-text-muted)" }}
-                      >
-                        <span className="transition-transform duration-200 group-open:rotate-90">
-                          ▸
-                        </span>
-                        Query used
-                      </summary>
-                      <pre
-                        className="mt-2 text-xs p-3 rounded-lg overflow-x-auto"
+                    {/* AI response */}
+                    <div className="flex justify-start">
+                      <div
+                        className="max-w-[88%] px-3.5 py-3"
                         style={{
-                          backgroundColor: "rgba(0,0,0,0.3)",
-                          color: "var(--lp-text-secondary)",
-                          fontFamily: "ui-monospace, monospace",
+                          backgroundColor: "var(--lp-bg)",
+                          border: "1px solid var(--lp-border-dark)",
+                          borderRadius: "14px 14px 14px 4px",
                         }}
                       >
-                        {`SELECT COUNT(*) AS new_customers
+                        <p
+                          className="text-[13px] leading-[1.6]"
+                          style={{ color: "var(--lp-text-on-dark)" }}
+                        >
+                          There were <strong>128 new customers</strong> this
+                          month. That&apos;s up 18% from last month.
+                          <span className="streaming-caret" aria-hidden />
+                        </p>
+
+                        {/* Collapsible SQL */}
+                        <details className="group mt-2.5">
+                          <summary
+                            className="flex w-fit cursor-pointer list-none items-center gap-1 rounded text-[11px] transition-colors duration-150 outline-none hover:text-[var(--lp-text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--lp-primary)] [&::-webkit-details-marker]:hidden"
+                            style={{ color: "var(--lp-text-muted)" }}
+                          >
+                            <ChevronRight
+                              size={12}
+                              strokeWidth={2.25}
+                              className="transition-transform duration-200 ease-out group-open:rotate-90"
+                            />
+                            Query used
+                          </summary>
+                          <pre
+                            className="scroll-thin mt-2 overflow-x-auto rounded-lg p-3 text-left text-[11.5px] leading-relaxed"
+                            style={{
+                              backgroundColor: "rgba(0,0,0,0.32)",
+                              color: "var(--lp-text-secondary)",
+                              fontFamily:
+                                "var(--font-geist-mono), ui-monospace, monospace",
+                              border: "1px solid rgba(255,255,255,0.04)",
+                            }}
+                          >
+                            {`SELECT COUNT(*) AS new_customers
 FROM customers
 WHERE signup_date >= date('now', 'start of month')`}
-                      </pre>
-                    </details>
+                          </pre>
+                        </details>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -348,54 +476,47 @@ WHERE signup_date >= date('now', 'start of month')`}
       {/* ──────────────────────── */}
       <section
         id="features"
-        className="py-20 md:py-28 px-6"
+        className="scroll-mt-16 px-6 py-20 md:py-24"
         style={{ backgroundColor: "var(--lp-bg)" }}
       >
-        <div className="max-w-6xl mx-auto">
-          <ScrollReveal>
-            <h2
-              className="text-3xl sm:text-4xl font-semibold text-center mb-4 leading-[1.2]"
-              style={{ color: "var(--lp-text-on-dark)" }}
-            >
-              What this project demonstrates
-            </h2>
-          </ScrollReveal>
-          <ScrollReveal>
-            <p
-              className="text-base text-center max-w-xl mx-auto mb-16"
-              style={{ color: "var(--lp-text-secondary)" }}
-            >
-              A look at the core technical skills behind this build.
-            </p>
-          </ScrollReveal>
+        <div className="mx-auto max-w-6xl">
+          <SectionHeading
+            title="What this project demonstrates"
+            description="A look at the core technical skills behind this build."
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-6">
             {features.map((f, i) => (
-              <ScrollReveal key={i}>
+              <ScrollReveal key={f.title} delay={i * 70} className="h-full">
                 <div
-                  className="rounded-xl p-6 md:p-8 transition-transform duration-300 hover:-translate-y-1"
+                  className="group relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 transition-[transform,border-color,box-shadow] duration-200 ease-[var(--lp-ease-out)] hover:-translate-y-0.5 md:p-7"
                   style={{
                     backgroundColor: "var(--lp-card-surface)",
-                    border: "1px solid var(--lp-border-dark)",
-                    boxShadow: "var(--lp-shadow-card)",
+                    backgroundImage:
+                      "linear-gradient(180deg, rgba(255,255,255,0.035), transparent 55%)",
+                    borderColor: "var(--lp-border-dark)",
+                    boxShadow:
+                      "0 1px 0 0 rgba(255,255,255,0.03) inset, 0 12px 32px -16px rgba(0,0,0,0.8)",
                   }}
                 >
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                    style={{
-                      backgroundColor: "rgba(187, 247, 70, 0.12)",
-                    }}
+                    className="mb-5 grid size-10 place-items-center rounded-[10px] ring-1 ring-inset ring-[rgba(187,247,70,0.16)] transition-[box-shadow] duration-200 group-hover:ring-[rgba(187,247,70,0.28)]"
+                    style={{ backgroundColor: "rgba(187,247,70,0.10)" }}
                   >
-                    <f.icon size={20} style={{ color: "var(--lp-primary)" }} />
+                    <f.icon
+                      size={19}
+                      strokeWidth={2}
+                      style={{ color: "var(--lp-primary)" }}
+                    />
                   </div>
                   <h3
-                    className="text-lg font-semibold mb-2"
+                    className="mb-2 text-[17px] font-semibold tracking-[-0.01em]"
                     style={{ color: "var(--lp-text-on-dark)" }}
                   >
                     {f.title}
                   </h3>
                   <p
-                    className="text-sm leading-relaxed"
+                    className="text-[14px] leading-[1.65] text-pretty"
                     style={{ color: "var(--lp-text-secondary)" }}
                   >
                     {f.desc}
@@ -412,66 +533,74 @@ WHERE signup_date >= date('now', 'start of month')`}
       {/* ──────────────────────── */}
       <section
         id="how-it-works"
-        className="py-20 md:py-28 px-6"
-        style={{ backgroundColor: "var(--lp-surface-mid)" }}
+        className="scroll-mt-16 border-y px-6 py-20 md:py-24"
+        style={{
+          backgroundColor: "var(--lp-surface-mid)",
+          borderColor: "var(--lp-border-dark)",
+        }}
       >
-        <div className="max-w-5xl mx-auto">
-          <ScrollReveal>
-            <h2
-              className="text-3xl sm:text-4xl font-semibold text-center mb-4 leading-[1.2]"
-              style={{ color: "var(--lp-text-on-dark)" }}
-            >
-              How it works under the hood
-            </h2>
-          </ScrollReveal>
-          <ScrollReveal>
-            <p
-              className="text-base text-center max-w-xl mx-auto mb-16"
-              style={{ color: "var(--lp-text-secondary)" }}
-            >
-              The technical flow from question to answer.
-            </p>
-          </ScrollReveal>
+        <div className="mx-auto max-w-5xl">
+          <SectionHeading
+            title="How it works under the hood"
+            description="The technical flow from question to answer."
+          />
 
           {/* Steps with connecting line */}
-          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-8 md:gap-0">
+          <div className="relative flex flex-col gap-10 md:flex-row md:items-start md:gap-0">
+            {/* Desktop connector: runs behind the icon row. */}
+            <div
+              aria-hidden
+              className="absolute top-8 right-[16.67%] left-[16.67%] hidden h-px md:block"
+              style={{
+                background:
+                  "linear-gradient(to right, transparent, var(--lp-border-strong) 20%, var(--lp-border-strong) 80%, transparent)",
+              }}
+            />
+
             {steps.map((step, i) => (
-              <ScrollReveal key={i}>
-                <div className="flex flex-col items-center text-center md:w-1/3 md:px-6 relative">
+              <ScrollReveal
+                key={step.title}
+                delay={i * 90}
+                className="md:w-1/3 md:px-5"
+              >
+                <div className="flex flex-col items-center text-center">
                   {/* Icon */}
                   <div
-                    className="relative w-16 h-16 rounded-xl flex items-center justify-center mb-5"
+                    className="relative z-10 mb-5 grid size-16 place-items-center rounded-2xl ring-1 ring-inset ring-[rgba(187,247,70,0.16)]"
                     style={{
-                      backgroundColor: "rgba(187, 247, 70, 0.12)",
+                      backgroundColor: "var(--lp-surface-mid)",
+                      backgroundImage:
+                        "radial-gradient(120% 120% at 50% 0%, rgba(187,247,70,0.16), transparent 70%)",
                       ...(step.glow
-                        ? {
-                            boxShadow: "0 0 20px rgba(187,247,70,0.2)",
-                          }
+                        ? { boxShadow: "0 0 32px rgba(187,247,70,0.16)" }
                         : {}),
                     }}
                   >
                     <step.icon
-                      size={26}
+                      size={24}
+                      strokeWidth={1.75}
                       style={{ color: "var(--lp-primary)" }}
                     />
                   </div>
 
                   {/* Card */}
                   <div
-                    className="rounded-xl p-5 w-90"
+                    className="w-full rounded-xl border p-5 transition-colors duration-200 hover:border-[var(--lp-border-strong)]"
                     style={{
                       backgroundColor: "var(--lp-card-surface)",
-                      border: "1px solid var(--lp-border-dark)",
+                      borderColor: "var(--lp-border-dark)",
+                      boxShadow:
+                        "0 1px 0 0 rgba(255,255,255,0.03) inset, 0 14px 36px -20px rgba(0,0,0,0.9)",
                     }}
                   >
                     <h3
-                      className="text-base font-semibold mb-2"
+                      className="mb-2 text-[15px] font-semibold tracking-[-0.01em]"
                       style={{ color: "var(--lp-text-on-dark)" }}
                     >
                       {step.title}
                     </h3>
                     <p
-                      className="text-sm leading-relaxed"
+                      className="text-[13.5px] leading-[1.65] text-pretty"
                       style={{ color: "var(--lp-text-secondary)" }}
                     >
                       {step.desc}
@@ -487,24 +616,42 @@ WHERE signup_date >= date('now', 'start of month')`}
       {/* ──────────────────────── */}
       {/* 5. CTA BANNER             */}
       {/* ──────────────────────── */}
-      <section className="py-20 md:py-28 px-6">
-        <div className="max-w-[700px] mx-auto">
+      <section className="px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-[720px]">
           <ScrollReveal>
             <div
-              className="rounded-xl text-center px-8 py-16 md:px-12 md:py-20"
+              className="relative overflow-hidden rounded-2xl border px-8 py-16 text-center md:px-12 md:py-20"
               style={{
                 backgroundColor: "var(--lp-surface-mid)",
-                border: "1px solid var(--lp-border-dark)",
-                boxShadow: "var(--lp-shadow-card)",
+                backgroundImage:
+                  "radial-gradient(80% 90% at 50% 0%, rgba(187,247,70,0.09), transparent 62%)",
+                borderColor: "var(--lp-border-dark)",
+                boxShadow:
+                  "0 1px 0 0 rgba(255,255,255,0.04) inset, 0 24px 64px -32px rgba(0,0,0,0.9)",
               }}
             >
-              <Sparkles
-                size={32}
-                className="mx-auto mb-6"
-                style={{ color: "var(--lp-primary)" }}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-px"
+                style={{
+                  background:
+                    "linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent)",
+                }}
               />
+
+              <div
+                className="mx-auto mb-6 grid size-14 place-items-center rounded-2xl ring-1 ring-inset ring-[rgba(187,247,70,0.18)]"
+                style={{ backgroundColor: "rgba(187,247,70,0.10)" }}
+              >
+                <Sparkles
+                  size={26}
+                  strokeWidth={2}
+                  style={{ color: "var(--lp-primary)" }}
+                />
+              </div>
+
               <h2
-                className="text-3xl sm:text-4xl font-semibold leading-[1.2] mb-10"
+                className="mb-10 text-[28px] leading-[1.15] font-semibold tracking-[-0.02em] text-balance sm:text-[36px]"
                 style={{ color: "var(--lp-text-on-dark)" }}
               >
                 Try it out{" "}
@@ -512,12 +659,16 @@ WHERE signup_date >= date('now', 'start of month')`}
                   yourself
                 </span>
               </h2>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <LandingLink href="/chat">
+              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+                <LandingLink href="/chat" className="w-full sm:w-auto">
                   Try the Live Demo
-                  <ArrowRight size={18} />
+                  <ArrowRight size={17} />
                 </LandingLink>
-                <LandingLink href={GITHUB_URL} variant="outline">
+                <LandingLink
+                  href={GITHUB_URL}
+                  variant="outline"
+                  className="w-full justify-center sm:w-auto"
+                >
                   View Source on GitHub
                 </LandingLink>
               </div>
@@ -530,25 +681,23 @@ WHERE signup_date >= date('now', 'start of month')`}
       {/* 6. FOOTER                 */}
       {/* ──────────────────────── */}
       <footer
-        className="pt-12 pb-8 px-6"
+        className="border-t px-6 pt-12 pb-8"
         style={{
           backgroundColor: "var(--lp-bg)",
-          borderTop: "1px solid var(--lp-border-dark)",
+          borderColor: "var(--lp-border-dark)",
         }}
       >
-        <div className="max-w-6xl mx-auto">
+        <div className="mx-auto max-w-6xl">
           <div
-            className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm"
-            style={{
-              color: "var(--lp-text-muted)",
-            }}
+            className="flex flex-col items-center justify-between gap-4 text-sm sm:flex-row"
+            style={{ color: "var(--lp-text-muted)" }}
           >
-            <p>Built by Darshil Prajapati &middot; 2026</p>
+            <p className="tabular-nums">Built by Darshil Prajapati · 2026</p>
             <div className="flex items-center gap-4">
               <LandingLink href={GITHUB_URL} variant="muted" size="plain">
                 GitHub
               </LandingLink>
-              <span>&middot;</span>
+              <span aria-hidden>·</span>
               <LandingLink href="/chat" variant="muted" size="plain">
                 Open app
               </LandingLink>
