@@ -45,15 +45,39 @@ function writeTheme(theme: Theme) {
   for (const listener of listeners) listener();
 }
 
+function applyTheme(theme: Theme) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+}
+
+// A theme flip changes color, background, border and shadow on almost every
+// element at once. Left alone, every transition fires together and the switch
+// smears. Kill transitions for a couple of frames so it snaps.
+function suppressTransitions() {
+  const style = document.createElement("style");
+  style.appendChild(
+    document.createTextNode(
+      "*,*::before,*::after{transition:none !important}",
+    ),
+  );
+  document.head.appendChild(style);
+  void window.getComputedStyle(document.body).opacity;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => style.remove());
+  });
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(subscribe, readTheme, getServerTheme);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
+    applyTheme(theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    writeTheme(readTheme() === "dark" ? "light" : "dark");
+    const next = readTheme() === "dark" ? "light" : "dark";
+    suppressTransitions();
+    applyTheme(next);
+    writeTheme(next);
   }, []);
 
   const value = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme]);

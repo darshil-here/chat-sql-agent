@@ -24,6 +24,10 @@ export const metadata: Metadata = {
     "QueryMind is an AI-powered chat interface that lets anyone query their database using plain English. No SQL needed.",
 };
 
+// Runs before first paint so a saved light theme never flashes the dark
+// default. Mirrors the storage key and default in theme-provider.tsx.
+const themeScript = `try{var t=localStorage.getItem("theme");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){document.documentElement.classList.add("dark")}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,7 +39,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="flex min-h-full flex-col">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
